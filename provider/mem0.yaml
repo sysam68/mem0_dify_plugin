@@ -1,0 +1,46 @@
+identity:
+  author: yevanchen
+  name: mem0ai
+  label:
+    en_US: mem0
+    zh_Hans: mem0
+    pt_BR: mem0
+  description:
+    en_US: mem0
+    zh_Hans: mem0
+    pt_BR: mem0
+  icon: mem0.png
+
+credentials_for_provider:
+  mem0_api_key:
+    type: secret-input
+    required: true
+    label:
+      en_US: Mem0 API key
+      zh_Hans: Mem0 API Key
+      pt_BR: Mem0 API key
+    placeholder:
+      en_US: Please input your Mem0 API key
+      zh_Hans: 请输入你的 Mem0 API Key
+      pt_BR: Please input your Mem0 API key
+    help:
+      en_US: Please visit the Mem0 AI Dashboard to register an account and apply for an API key
+      zh_Hans: 请访问 Mem0 AI 仪表板注册账号并获取 API Key
+      pt_BR: Please visit the Mem0 AI Dashboard to register an account and apply for an API key
+    url: https://app.mem0.ai/dashboard/api-keys
+
+
+tools:
+  - tools/add_memory.yaml
+  - tools/retrieve_memory.yaml
+  - tools/get_all_memories.yaml
+  - tools/get_memory.yaml
+  - tools/update_memory.yaml
+  - tools/delete_memory.yaml
+  - tools/delete_all_memories.yaml
+  - tools/get_memory_history.yaml
+extra:
+  python:
+    source: provider/mem0.py
+
+

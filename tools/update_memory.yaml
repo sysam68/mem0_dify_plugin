@@ -1,0 +1,43 @@
+identity:
+  name: update_mem0ai_memory
+  author: yevanchen
+  label:
+    en_US: Update Memory
+    zh_Hans: 更新记忆
+    pt_BR: Atualizar Memória
+description:
+  human:
+    en_US: Update an existing memory with new content
+    zh_Hans: 用新内容更新现有记忆
+    pt_BR: Atualizar uma memória existente com novo conteúdo
+  llm: Update an existing memory with new content
+parameters:
+  - name: memory_id
+    type: string
+    required: true
+    label:
+      en_US: Memory ID
+      zh_Hans: 记忆ID
+      pt_BR: ID da Memória
+    human_description:
+      en_US: The unique identifier of the memory to update.
+      zh_Hans: 要更新的记忆的唯一标识符。
+      pt_BR: O identificador único da memória a ser atualizada.
+    llm_description: The unique identifier of the memory to update.
+    form: llm
+  - name: text
+    type: string
+    required: true
+    label:
+      en_US: New Memory Text
+      zh_Hans: 新的记忆文本
+      pt_BR: Novo Texto da Memória
+    human_description:
+      en_US: The new text content for the memory.
+      zh_Hans: 记忆的新文本内容。
+      pt_BR: O novo conteúdo de texto para a memória.
+    llm_description: The new text content for the memory.
+    form: llm
+extra:
+  python:
+    source: tools/update_memory.py

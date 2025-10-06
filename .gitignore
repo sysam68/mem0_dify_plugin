@@ -1,0 +1,69 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.difypkg
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Dify Plugin Development
+temp_package/
+
+# Documentation build artifacts
+mem0-api-docs/
+*.pyc
+
+# Scripts and utilities (optional - uncomment if you don't want to include)
+# download_*.py
+# fetch_*.py
+# clean_*.py
+# process_*.py
+# build_package.sh
+
+# Local development files
+.verification.dify.json
+api-docs-comparison.md
+api-scraping-prompt.md

@@ -1,0 +1,30 @@
+identity:
+  name: delete_mem0ai_memory
+  author: yevanchen
+  label:
+    en_US: Delete Memory
+    zh_Hans: 删除记忆
+    pt_BR: Excluir Memória
+description:
+  human:
+    en_US: Delete a specific memory by its ID
+    zh_Hans: 通过ID删除特定记忆
+    pt_BR: Excluir uma memória específica por seu ID
+  llm: Delete a specific memory by its ID
+parameters:
+  - name: memory_id
+    type: string
+    required: true
+    label:
+      en_US: Memory ID
+      zh_Hans: 记忆ID
+      pt_BR: ID da Memória
+    human_description:
+      en_US: The unique identifier of the memory to delete.
+      zh_Hans: 要删除的记忆的唯一标识符。
+      pt_BR: O identificador único da memória a ser excluída.
+    llm_description: The unique identifier of the memory to delete.
+    form: llm
+extra:
+  python:
+    source: tools/delete_memory.py

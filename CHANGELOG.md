@@ -1,0 +1,242 @@
+# Mem0 Dify Plugin - Changelog
+
+## Version 0.0.3 (2025-10-05)
+
+### 🎉 Major Update: Full Mem0 API v2 Support
+
+This version brings complete support for Mem0's latest API features, including v2 advanced filtering and full CRUD operations.
+
+---
+
+## ✨ New Features
+
+### 📦 6 New Tools Added
+
+1. **Get All Memories** (`get_all_mem0ai_memories`)
+   - Retrieve all memories for a user, agent, app, or run
+   - Supports pagination with limit parameter
+   - Multi-entity filtering support
+
+2. **Get Memory** (`get_mem0ai_memory`)
+   - Fetch a specific memory by its ID
+   - Returns complete memory details including metadata
+
+3. **Update Memory** (`update_mem0ai_memory`)
+   - Update existing memory content
+   - Preserves memory metadata and entity associations
+
+4. **Delete Memory** (`delete_mem0ai_memory`)
+   - Delete a specific memory by ID
+   - Safe deletion with confirmation
+
+5. **Delete All Memories** (`delete_all_mem0ai_memories`)
+   - Batch delete memories by entity filters
+   - Requires at least one entity ID for safety
+
+6. **Get Memory History** (`get_mem0ai_memory_history`)
+   - View complete change history of a memory
+   - Shows previous and new values for each change
+
+---
+
+## 🔄 Enhanced Existing Tools
+
+### **Add Memory** (Enhanced)
+**New Parameters:**
+- `agent_id` - Associate memory with an agent
+- `app_id` - Associate memory with an application
+- `run_id` - Associate memory with a specific run
+- `metadata` - Custom metadata as JSON string
+- `output_format` - Choose between v1.0, v1.1, or v2 output formats
+
+**Breaking Changes:**
+- `user_id` is now optional (at least one entity ID should be provided)
+
+### **Retrieve Memory** (Enhanced with v2 API)
+**New Parameters:**
+- `version` - Select API version (v1 or v2)
+- `agent_id` - Filter by agent ID
+- `app_id` - Filter by application ID
+- `run_id` - Filter by run ID
+- `filters` - Advanced AND/OR logic filters (v2 only)
+- `limit` - Maximum number of results
+
+**v2 Advanced Filters Example:**
+```json
+{
+  "AND": [
+    {"user_id": "alex"},
+    {
+      "OR": [
+        {"agent_id": "travel_agent"},
+        {"agent_id": "food_agent"}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 🌟 Key Improvements
+
+### Multi-Entity Support
+All tools now support multiple entity types:
+- `user_id` - User-specific memories
+- `agent_id` - Agent-specific memories
+- `app_id` - Application-specific memories
+- `run_id` - Run-specific memories
+
+### Metadata Support
+- Add custom metadata when creating memories
+- Retrieve and filter by metadata
+- Supports any JSON-serializable data
+
+### Version Control
+- Choose output format (v1.0/v1.1/v2)
+- v2 provides richer response data
+- Backward compatible with v1
+
+### Enhanced Error Handling
+- Better error messages for invalid JSON
+- Clear validation for required parameters
+- HTTP status code specific error handling
+
+---
+
+## 📋 Complete Tool List
+
+### Memory Management (8 Tools)
+1. ✅ Add Memory - Create new memories
+2. ✅ Retrieve Memory - Search memories with advanced filters
+3. ✅ Get All Memories - List all memories
+4. ✅ Get Memory - Get single memory details
+5. ✅ Update Memory - Modify existing memories
+6. ✅ Delete Memory - Remove single memory
+7. ✅ Delete All Memories - Batch delete memories
+8. ✅ Get Memory History - View memory change history
+
+---
+
+## 🔧 Technical Details
+
+### API Endpoints Covered
+- `POST /v1/memories/` - Create memories
+- `POST /v1/memories/search/` - Search memories (v1 & v2)
+- `GET /v1/memories/` - List memories
+- `GET /v1/memories/{id}/` - Get memory
+- `PUT /v1/memories/{id}/` - Update memory
+- `DELETE /v1/memories/{id}/` - Delete memory
+- `DELETE /v1/memories/` - Batch delete
+- `GET /v1/memories/{id}/history/` - Memory history
+
+### Dependencies
+- `httpx` - HTTP client
+- `dify_plugin` - Dify plugin framework
+- Python 3.12
+
+### Configuration Updates
+- Updated `provider/mem0.yaml` with all 8 tools
+- Updated `manifest.yaml` to version 0.0.3
+- Enhanced tool descriptions with v2 features
+
+---
+
+## 🌍 Internationalization
+
+All new features include complete translations:
+- 🇺🇸 English (en_US)
+- 🇨🇳 Simplified Chinese (zh_Hans)
+- 🇧🇷 Portuguese (pt_BR)
+- 🇯🇵 Japanese (ja_JP)
+
+---
+
+## 🚀 Migration Guide
+
+### From v0.0.2 to v0.0.3
+
+**Breaking Changes:**
+1. `user_id` in `add_memory` is now optional
+   - **Action**: Ensure at least one of `user_id`, `agent_id`, `app_id`, or `run_id` is provided
+
+2. `user_id` in `retrieve_memory` is now optional
+   - **Action**: Can use `filters` or other entity IDs instead
+
+**Recommended Updates:**
+1. Start using `metadata` for richer context
+2. Migrate to v2 API for advanced filtering
+3. Use entity IDs to organize memories by context
+
+**Backward Compatibility:**
+- All v0.0.2 workflows continue to work
+- No code changes required for existing implementations
+- New parameters are optional
+
+---
+
+## 📚 Usage Examples
+
+### Example 1: Add Memory with Metadata
+```json
+{
+  "user": "I love Italian food",
+  "assistant": "Great! I'll remember that.",
+  "user_id": "alex",
+  "agent_id": "food_assistant",
+  "metadata": "{\"category\": \"food_preferences\", \"cuisine\": \"italian\"}"
+}
+```
+
+### Example 2: Advanced Search with v2 Filters
+```json
+{
+  "query": "What are my food preferences?",
+  "version": "v2",
+  "filters": "{\"AND\": [{\"user_id\": \"alex\"}, {\"agent_id\": \"food_assistant\"}]}"
+}
+```
+
+### Example 3: Get All Memories for an Agent
+```json
+{
+  "agent_id": "travel_assistant",
+  "limit": 50
+}
+```
+
+---
+
+## 🐛 Bug Fixes
+- Fixed JSON parsing errors with better error messages
+- Improved HTTP status code handling
+- Enhanced validation for required parameters
+
+---
+
+## 📝 Notes
+
+- All API calls use 30-second timeout
+- JSON responses include both structured data and human-readable text
+- Supports all Mem0 Platform features as of October 2025
+
+---
+
+## 🙏 Credits
+
+- Based on [Mem0 AI](https://mem0.ai) official API documentation
+- Developed using Context7 for documentation retrieval
+- Compatible with Dify Plugin Framework
+
+---
+
+## 📞 Support
+
+For issues or questions:
+- Check the official [Mem0 Documentation](https://docs.mem0.ai)
+- Review the tool YAML files for parameter details
+- Test with Dify Plugin Debugger
+
+---
+
+**Full Changelog**: v0.0.2 → v0.0.3
