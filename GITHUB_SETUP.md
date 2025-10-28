@@ -117,8 +117,8 @@ dify-plugin-mem0/
 ├── tools/
 │   ├── add_memory.yaml
 │   ├── add_memory.py
-│   ├── retrieve_memory.yaml
-│   ├── retrieve_memory.py
+│   ├── search_memory.yaml
+│   ├── search_memory.py
 │   ├── get_all_memories.yaml
 │   ├── get_all_memories.py
 │   ├── get_memory.yaml

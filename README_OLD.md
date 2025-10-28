@@ -47,8 +47,8 @@ Backend logic:
 - Handles message format validation and processing
 - Optimizes storage for efficient retrieval
 
-#### retrieve_memory
-Retrieves relevant conversation history based on queries.
+#### search_memory
+Searches relevant conversation history based on queries.
 
 ```python
 query = "What can I cook for dinner tonight?"
@@ -63,7 +63,7 @@ Backend logic:
 
 ### Usage in Dify
 
-1. In Dify workflows, place `retrieve_memory` before LLM calls to provide context
+1. In Dify workflows, place `search_memory` before LLM calls to provide context
 2. Add `add_memory` after LLM responses to store new interactions
 3. `user_id` can be customized in workflow run API
 4. Note: iframe and webapp modes currently don't support user_id due to lack of access control
