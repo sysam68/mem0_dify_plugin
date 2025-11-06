@@ -1,20 +1,20 @@
 """Dify tool to package search payload for mem0 client and return results."""
 
+import asyncio
 import json
 from collections.abc import Generator
 from typing import Any
 
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
-from utils.mem0_client import get_mem0_client
+from utils.constants import SEARCH_DEFAULT_TOP_K
+from utils.mem0_client import AsyncLocalClient
 
 
-class RetrieveMem0Tool(Tool):
+class SearchMem0Tool(Tool):
     """Tool that builds a search payload and delegates to mem0_client.search."""
 
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
-        version = tool_parameters.get("version", "v1")
-
         # Validate required fields
         query = tool_parameters.get("query", "")
         user_id = tool_parameters.get("user_id")
@@ -28,40 +28,43 @@ class RetrieveMem0Tool(Tool):
         # Build payload
         payload: dict[str, Any] = {"query": query, "user_id": user_id}
 
-        # Filters for v2
+        # Optional advanced filters (JSON)
         filters_value = tool_parameters.get("filters")
-        if version == "v2" and filters_value:
+        if filters_value:
             try:
                 payload["filters"] = (
                     json.loads(filters_value)
                     if isinstance(filters_value, str)
                     else filters_value
                 )
-                payload["version"] = "v2"
             except json.JSONDecodeError as json_err:
                 msg = f"Invalid JSON in filters: {json_err}"
                 yield self.create_json_message({"status": "error", "error": msg})
                 yield self.create_text_message(f"Failed to search memory: {msg}")
                 return
-        else:
-            # Optional scoping fields
-            agent_id = tool_parameters.get("agent_id")
-            run_id = tool_parameters.get("run_id")
-            if agent_id:
-                payload["agent_id"] = agent_id
-            if run_id:
-                payload["run_id"] = run_id
+        # Optional scoping fields
+        agent_id = tool_parameters.get("agent_id")
+        run_id = tool_parameters.get("run_id")
+        if agent_id:
+            payload["agent_id"] = agent_id
+        if run_id:
+            payload["run_id"] = run_id
 
-        # Optional top_k -> limit mapping for mem0_client
-        if tool_parameters.get("top_k") is not None:
+        # Optional top_k -> limit mapping for mem0_client (default 5)
+        top_k = tool_parameters.get("top_k")
+        if top_k is None:
+            payload["limit"] = SEARCH_DEFAULT_TOP_K
+        else:
             try:
-                payload["limit"] = int(tool_parameters.get("top_k"))
+                payload["limit"] = int(top_k)
             except (TypeError, ValueError):
-                payload["limit"] = tool_parameters.get("top_k")
+                payload["limit"] = top_k
 
         try:
-            client = get_mem0_client(self.runtime.credentials)
-            results = client.search(payload)
+            client = AsyncLocalClient(self.runtime.credentials)
+            # Submit to background loop and wait on future to avoid nested event loop issues
+            loop = AsyncLocalClient.ensure_bg_loop()
+            results = asyncio.run_coroutine_threadsafe(client.search(payload), loop).result()
 
             # JSON output
             norm_results = []
@@ -83,7 +86,7 @@ class RetrieveMem0Tool(Tool):
                 "results": norm_results,
             })
 
-            # Text output
+            # Text output (detailed for downstream workflow consumption)
             lines = [f"Query: {payload.get('query', '')}", "", "Results:"]
             if norm_results:
                 for idx, r in enumerate(norm_results, 1):

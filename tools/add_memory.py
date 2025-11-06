@@ -1,14 +1,16 @@
 """Dify tool for adding a memory via Mem0 client."""
 
+import asyncio
 from collections.abc import Generator
 from typing import Any
 
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
-from utils.mem0_client import get_mem0_client
+from utils.constants import ADD_ACCEPT_RESULT, ADD_SKIP_RESULT
+from utils.mem0_client import AsyncLocalClient
 
 
-class Mem0Tool(Tool):
+class AddMem0Tool(Tool):
     """Tool to add user/assistant messages as a memory."""
 
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -20,9 +22,9 @@ class Mem0Tool(Tool):
             yield self.create_text_message(f"Failed to add memory: {error_message}")
             return
 
-        # Collect inputs
-        user_text = tool_parameters.get("user", "")
-        assistant_text = tool_parameters.get("assistant", "")
+        # Collect inputs (strip whitespace to avoid empty-only content)
+        user_text = (tool_parameters.get("user") or "").strip()
+        assistant_text = (tool_parameters.get("assistant") or "").strip()
         agent_id = tool_parameters.get("agent_id")
         app_id = tool_parameters.get("app_id")
         run_id = tool_parameters.get("run_id")
@@ -50,19 +52,34 @@ class Mem0Tool(Tool):
             payload["output_format"] = output_format
 
         try:
-            client = get_mem0_client(self.runtime.credentials)
-            result = client.add(payload)
+            # Skip when no messages prepared or only blank content
+            if (
+                not messages
+                or not any(
+                    isinstance(m.get("content"), str) and m["content"].strip()
+                    for m in messages
+                )
+            ):
+                yield self.create_json_message({
+                    "status": "skipped",
+                    "messages": messages,
+                    **ADD_SKIP_RESULT,
+                })
+                yield self.create_text_message("Skipped memory addition for empty messages.")
+                return
+
+            client = AsyncLocalClient(self.runtime.credentials)
+            # Submit add to background event loop without awaiting (non-blocking)
+            loop = AsyncLocalClient.ensure_bg_loop()
+            asyncio.run_coroutine_threadsafe(client.add(payload), loop)
 
             yield self.create_json_message({
-                "status": "success",
+                "status": "queued",
                 "messages": messages,
-                "result": result,
+                **ADD_ACCEPT_RESULT,
             })
 
-            text_response = "Memory added successfully\n\nAdded messages:\n"
-            for m in messages:
-                text_response += f"- {m['role']}: {m['content']}\n"
-            yield self.create_text_message(text_response)
+            yield self.create_text_message("Asynchronous memory addition has been queued.")
 
         except (ValueError, RuntimeError, TypeError) as e:
             error_message = f"Error: {e!s}"

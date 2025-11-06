@@ -11,45 +11,10 @@ identity:
   tags:
     - utilities
 credentials_for_provider:
-  mode:
-    type: select
-    required: true
-    options:
-      - value: Local
-        label:
-          en_US: Local
-          zh_Hans: 本地
-      - value: SaaS
-        label:
-          en_US: SaaS
-          zh_Hans: SaaS
-    default: Local
-    label:
-      en_US: Mode
-      zh_Hans: 模式
-    placeholder:
-      en_US: Select SaaS or Local
-      zh_Hans: 选择 SaaS 或 本地
-
-  # SaaS mode: Mem0 API key
-  mem0_api_key:
-    type: secret-input
-    required: false
-    label:
-      en_US: Mem0 API key (SaaS)
-      zh_Hans: Mem0 API Key（SaaS）
-    placeholder:
-      en_US: Please input your Mem0 API key
-      zh_Hans: 请输入你的 Mem0 API Key
-    help:
-      en_US: Please visit the Mem0 AI Dashboard to register an account and apply for an API key
-      zh_Hans: 请访问 Mem0 AI 仪表板注册账号并获取 API Key
-    url: https://app.mem0.ai/dashboard/api-keys
-
   # Local mode: simplified JSON blocks
   local_llm_json:
     type: text-input
-    required: false
+    required: true
     label:
       en_US: LLM (JSON)
       zh_Hans: LLM（JSON）
@@ -58,7 +23,7 @@ credentials_for_provider:
       zh_Hans: '{"provider":"azure_openai","config":{...}}'
   local_embedder_json:
     type: text-input
-    required: false
+    required: true
     label:
       en_US: Embedder (JSON)
       zh_Hans: 向量模型（JSON）
@@ -67,7 +32,7 @@ credentials_for_provider:
       zh_Hans: '{"provider":"azure_openai","config":{...}}'
   local_vector_db_json:
     type: text-input
-    required: false
+    required: true
     label:
       en_US: Vector Database (JSON)
       zh_Hans: 向量数据库（JSON）

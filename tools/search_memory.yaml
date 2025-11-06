@@ -54,26 +54,6 @@ parameters:
       zh_Hans: 可选的运行标识符。
     llm_description: Optional run identifier.
     form: llm
-  - name: version
-    type: select
-    required: false
-    label:
-      en_US: API Version
-      zh_Hans: API 版本
-    human_description:
-      en_US: API version to use (v1 or v2). v2 supports advanced filters. Default is v1.
-      zh_Hans: 要使用的 API 版本（v1 或 v2）。v2 支持高级过滤器。默认为 v1。
-    llm_description: API version to use. v2 supports advanced filters. Default is v1.
-    form: form
-    options:
-      - value: v1
-        label:
-          en_US: v1 (default)
-          zh_Hans: v1（默认）
-      - value: v2
-        label:
-          en_US: v2 (with advanced filters)
-          zh_Hans: v2（含高级过滤器）
   - name: filters
     type: string
     required: false
@@ -81,20 +61,21 @@ parameters:
       en_US: Advanced Filters (JSON)
       zh_Hans: 高级过滤器（JSON）
     human_description:
-      en_US: 'Advanced filters for v2 API in JSON format. Example: {"AND": [{"user_id": "alex"}, {"OR": [{"agent_id": "agent1"}, {"agent_id": "agent2"}]}]}'
-      zh_Hans: 'v2 API 的高级过滤器，JSON 格式。例如：{"AND": [{"user_id": "alex"}, {"OR": [{"agent_id": "agent1"}, {"agent_id": "agent2"}]}]}'
-    llm_description: Advanced filters for v2 API in JSON format with AND/OR logic.
+      en_US: 'Advanced filters in JSON with AND/OR logic. Example: {"AND": [{"user_id": "alex"}, {"OR": [{"agent_id": "agent1"}, {"agent_id": "agent2"}]}]}'
+      zh_Hans: '高级过滤器，JSON 格式，支持 AND/OR 逻辑。例如：{"AND": [{"user_id": "alex"}, {"OR": [{"agent_id": "agent1"}, {"agent_id": "agent2"}]}]}'
+    llm_description: Advanced filters in JSON with AND/OR logic.
     form: llm
   - name: top_k
     type: number
     required: false
+    default: 5
     label:
       en_US: Top K
       zh_Hans: Top K
     human_description:
-      en_US: Optional maximum number of results to return.
-      zh_Hans: 可选，返回的最大结果数量。
-    llm_description: Optional maximum number of results to return.
+      en_US: 'Optional maximum number of results to return (default: 5).'
+      zh_Hans: 可选，返回的最大结果数量（默认：5）。
+    llm_description: 'Optional maximum number of results to return (default: 5).'
     form: llm
 extra:
   python:

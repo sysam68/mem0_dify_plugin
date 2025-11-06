@@ -3,14 +3,14 @@ from typing import Any
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 
-from utils.mem0_client import get_mem0_client
+from utils.mem0_client import LocalClient
 
 class GetMemoryTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
         memory_id = tool_parameters["memory_id"]
         
         try:
-            client = get_mem0_client(self.runtime.credentials)
+            client = LocalClient(self.runtime.credentials)
             result = client.get(memory_id)
             
             yield self.create_json_message({

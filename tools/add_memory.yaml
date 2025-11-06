@@ -23,7 +23,7 @@ parameters:
     form: llm
   - name: assistant
     type: string
-    required: true
+    required: false
     label:
       en_US: Assistant Response
       zh_Hans: 助手回应
@@ -54,17 +54,7 @@ parameters:
       zh_Hans: 可选的代理标识符。
     llm_description: Optional agent identifier.
     form: llm
-  - name: app_id
-    type: string
-    required: false
-    label:
-      en_US: App ID
-      zh_Hans: 应用ID
-    human_description:
-      en_US: Optional application identifier (SaaS only; ignored in Local mode).
-      zh_Hans: 可选的应用标识符（仅 SaaS 模式有效，本地模式忽略）。
-    llm_description: Optional application identifier (SaaS only).
-    form: llm
+  
   - name: run_id
     type: string
     required: false

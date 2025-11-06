@@ -3,7 +3,7 @@ from typing import Any
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 
-from utils.mem0_client import get_mem0_client
+from utils.mem0_client import LocalClient
 
 class UpdateMemoryTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -11,7 +11,7 @@ class UpdateMemoryTool(Tool):
         text = tool_parameters["text"]
 
         try:
-            client = get_mem0_client(self.runtime.credentials)
+            client = LocalClient(self.runtime.credentials)
             result = client.update(memory_id, {"text": text})
 
             yield self.create_json_message({
