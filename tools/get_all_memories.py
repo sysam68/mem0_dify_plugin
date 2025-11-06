@@ -4,7 +4,7 @@ from typing import Any
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 
-from utils.mem0_client import get_mem0_client
+from utils.mem0_client import LocalClient
 
 
 class GetAllMemoriesTool(Tool):
@@ -29,7 +29,7 @@ class GetAllMemoriesTool(Tool):
             return
 
         try:
-            client = get_mem0_client(self.runtime.credentials)
+            client = LocalClient(self.runtime.credentials)
             results = client.get_all(params)
 
             # JSON output

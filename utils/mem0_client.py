@@ -1,13 +1,16 @@
-"""Client adapters for Mem0 SaaS and local modes."""
+"""Client adapter for Mem0 local mode only."""
 
 from __future__ import annotations
 
+import asyncio
 import json
+import threading
 from typing import Any
 
-from mem0 import Memory, MemoryClient
+from mem0 import AsyncMemory, Memory
 
 from .config_builder import build_local_mem0_config
+from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT
 
 
 def _normalize_search_results(results: object) -> list[dict[str, Any]]:
@@ -35,113 +38,28 @@ def _normalize_search_results(results: object) -> list[dict[str, Any]]:
     return normalized
 
 
-class SaaSClient:
-    """Thin wrapper around Mem0 SaaS client."""
-
-    def __init__(self, api_key: str) -> None:
-        self._client = MemoryClient(api_key=api_key)
-
-    def _build_filters(self, payload: dict[str, Any]) -> dict[str, Any] | None:
-        and_filters: list[dict[str, Any]] = []
-        if payload.get("user_id"):
-            and_filters.append({"user_id": payload["user_id"]})
-        if payload.get("agent_id"):
-            and_filters.append({"agent_id": payload["agent_id"]})
-        if payload.get("run_id"):
-            and_filters.append({"run_id": payload["run_id"]})
-        return {"AND": and_filters} if and_filters else None
-
-    def search(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
-        query = payload.get("query", "")
-        filters = self._build_filters(payload)
-        limit = payload.get("limit")
-        # Pass limit to SDK if provided
-        if limit is not None:
-            results = self._client.search(query, filters=filters, limit=limit)
-        else:
-            results = self._client.search(query, filters=filters)
-        normalized = _normalize_search_results(results)
-        # Safeguard slicing in case backend ignores limit
-        try:
-            lim = int(limit) if limit is not None else None
-        except (TypeError, ValueError):
-            lim = None
-        return normalized[:lim] if lim and lim > 0 else normalized
-
-    def add(self, payload: dict[str, Any]) -> dict[str, Any]:
-        metadata = payload.get("metadata")
-        if isinstance(metadata, str):
-            try:
-                metadata = json.loads(metadata)
-            except (json.JSONDecodeError, TypeError):
-                metadata = None
-
-        # Build kwargs only with provided fields
-        kwargs: dict[str, Any] = {}
-        if payload.get("version"):
-            kwargs["version"] = payload.get("version")
-        if payload.get("user_id"):
-            kwargs["user_id"] = payload.get("user_id")
-        if payload.get("agent_id"):
-            kwargs["agent_id"] = payload.get("agent_id")
-        if payload.get("run_id"):
-            kwargs["run_id"] = payload.get("run_id")
-        if payload.get("app_id") is not None:
-            kwargs["app_id"] = payload.get("app_id")
-        if metadata is not None:
-            kwargs["metadata"] = metadata
-        if payload.get("output_format"):
-            kwargs["output_format"] = payload.get("output_format")
-
-        # Use messages directly if provided; otherwise fall back to a single string
-        first_arg = payload.get("messages")
-        if first_arg is None:
-            first_arg = payload.get("user") or ""
-
-        return self._client.add(first_arg, **kwargs)
-
-    def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        filters = self._build_filters(params)
-        results = self._client.get_all(version="v2", filters=filters)
-        return results or []
-
-    def get(self, memory_id: str) -> dict[str, Any]:
-        return self._client.get(memory_id)
-
-    def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._client.update(memory_id, payload.get("text"))
-
-    def delete(self, memory_id: str) -> dict[str, Any]:
-        return self._client.delete(memory_id)
-
-    def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
-        filters = self._build_filters(params)
-        return self._client.delete_all(version="v2", filters=filters)
-
-    def history(self, memory_id: str) -> list[dict[str, Any]]:
-        return self._client.history(memory_id)
-
-
 class LocalClient:
     """Local Mem0 client using configured providers."""
 
     def __init__(self, credentials: dict[str, Any]) -> None:
         config = build_local_mem0_config(credentials)
-        self._memory = Memory.from_config(config)
+        self.memory = Memory.from_config(config)
+        # Keep behavior aligned with AsyncLocalClient
+        self.use_custom_prompt = True
+        self.custom_prompt = CUSTOM_PROMPT
 
     def search(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         query = payload.get("query", "")
-        version = payload.get("version")
         filters = payload.get("filters")
         limit = payload.get("limit")
-        # Pass limit to local search when available; otherwise slice later
-        if version == "v2" and isinstance(filters, dict):
+        # In local mode, ignore any API version settings; support filters when provided
+        if isinstance(filters, dict):
             if limit is not None:
-                results = self._memory.search(query, filters=filters, limit=limit)
+                results = self.memory.search(query, filters=filters, limit=limit)
             else:
-                results = self._memory.search(query, filters=filters)
+                results = self.memory.search(query, filters=filters)
         elif limit is not None:
-            results = self._memory.search(
+            results = self.memory.search(
                 query,
                 user_id=payload.get("user_id"),
                 agent_id=payload.get("agent_id"),
@@ -149,7 +67,7 @@ class LocalClient:
                 limit=limit,
             )
         else:
-            results = self._memory.search(
+            results = self.memory.search(
                 query,
                 user_id=payload.get("user_id"),
                 agent_id=payload.get("agent_id"),
@@ -180,21 +98,25 @@ class LocalClient:
             kwargs["run_id"] = payload.get("run_id")
         if metadata is not None:
             kwargs["metadata"] = metadata
+        if self.use_custom_prompt:
+            kwargs["prompt"] = self.custom_prompt
 
-        # Use messages directly if provided; otherwise fall back to a single string
-        first_arg = payload.get("messages")
-        if first_arg is None:
-            first_arg = payload.get("user") or ""
-
-        return self._memory.add(first_arg, **kwargs)
+        # Use messages directly if provided; assume upstream has validated inputs
+        messages = payload.get("messages")
+        return self.memory.add(messages, **kwargs)
 
     def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        version = params.get("version")
         filters = params.get("filters")
-        if version == "v2" and isinstance(filters, dict):
-            results = self._memory.get_all(version="v2", filters=filters)
+        # In local mode, ignore version; support filters directly when provided
+        if isinstance(filters, dict):
+            # Prefer calling with filters only if supported by mem0
+            try:
+                results = self.memory.get_all(filters=filters)
+            except TypeError:
+                # Fallback: if filters signature unsupported, return empty list
+                results = []
         else:
-            results = self._memory.get_all(
+            results = self.memory.get_all(
                 user_id=params.get("user_id"),
                 agent_id=params.get("agent_id"),
                 run_id=params.get("run_id"),
@@ -202,32 +124,225 @@ class LocalClient:
         return results or []
 
     def get(self, memory_id: str) -> dict[str, Any]:
-        return self._memory.get(memory_id)
+        return self.memory.get(memory_id)
 
     def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._memory.update(memory_id, payload.get("text"))
+        return self.memory.update(memory_id, payload.get("text"))
 
     def delete(self, memory_id: str) -> dict[str, Any]:
-        return self._memory.delete(memory_id)
+        return self.memory.delete(memory_id)
 
     def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
-        return self._memory.delete_all(
+        return self.memory.delete_all(
             user_id=params.get("user_id"),
             agent_id=params.get("agent_id"),
             run_id=params.get("run_id"),
         )
 
     def history(self, memory_id: str) -> list[dict[str, Any]]:
-        return self._memory.history(memory_id)
+        return self.memory.history(memory_id)
 
 
-def get_mem0_client(credentials: dict[str, Any]) -> SaaSClient | LocalClient:
-    mode_raw = credentials.get("mode") or "SaaS"
-    mode = str(mode_raw).strip().lower()
-    if mode == "saas":
-        api_key = credentials.get("mem0_api_key")
-        if not api_key:
-            msg = "mem0_api_key is required for SaaS mode"
-            raise ValueError(msg)
-        return SaaSClient(api_key)
-    return LocalClient(credentials)
+class AsyncLocalClient:
+    """Async local Mem0 client using configured providers."""
+
+    _instance: AsyncLocalClient | None = None
+    _instance_lock = threading.Lock()
+
+    def __new__(cls, _credentials: dict[str, Any]) -> AsyncLocalClient:
+        """Create or return the singleton instance of AsyncLocalClient.
+
+        Ensures a single process-wide instance guarded by a class-level lock,
+        ignoring repeated constructor calls.
+        """
+        with cls._instance_lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self, credentials: dict[str, Any]) -> None:
+        # Guard against re-initializing singleton
+        if getattr(self, "_initialized", False):
+            return
+        self.config = build_local_mem0_config(credentials)
+        self.memory = None
+        # Async lock to protect one-time asynchronous initialization.
+        self._create_lock = asyncio.Lock()
+        # Maximum concurrent memory addition operations to avoid overloading the connection pool
+        self.MAX_CONCURRENT_MEM_ADDS = 5
+        # Semaphore to limit the concurrency of memory add operations
+        self._semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_MEM_ADDS)
+        # Toggle whether to use custom prompt
+        self.use_custom_prompt = True
+        self.custom_prompt = CUSTOM_PROMPT
+        self._initialized = True
+
+    async def create(self) -> AsyncMemory:
+        """Lazily create AsyncMemory once."""
+        if self.memory is not None:
+            return self.memory
+        async with self._create_lock:
+            if self.memory is None:
+                self.memory = await AsyncMemory.from_config(self.config)
+        return self.memory
+
+    # Background event loop (class-level, process-wide)
+    _bg_loop: asyncio.AbstractEventLoop | None = None
+    _bg_thread: threading.Thread | None = None
+    _bg_ready = threading.Event()
+    _bg_lock = threading.Lock()
+
+    @classmethod
+    def ensure_bg_loop(cls) -> asyncio.AbstractEventLoop:
+        """Ensure that a background asyncio event loop is running in a dedicated thread.
+
+        This method is used to provide a shared process-wide background event loop for
+        submitting and running coroutines from synchronous code or from threads that do
+        not have a running event loop. It lazily creates the event loop and the thread
+        the first time it is needed, and returns the running event loop thereafter.
+
+        Returns:
+            asyncio.AbstractEventLoop: The background event loop object.
+
+        Raises:
+            RuntimeError: If the background event loop fails to start.
+
+        """
+        with cls._bg_lock:
+            # Reuse the existing loop if already running
+            if cls._bg_loop and cls._bg_thread and cls._bg_thread.is_alive():
+                return cls._bg_loop
+
+            # Define the function that runs in the new background thread
+            def _runner() -> None:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                cls._bg_loop = loop
+                cls._bg_ready.set()
+                loop.run_forever()  # Run the event loop forever
+
+            # Prepare to start a new background thread
+            cls._bg_ready.clear()
+            t = threading.Thread(target=_runner, name="mem0-bg-loop", daemon=True)
+            t.start()
+            cls._bg_thread = t
+            cls._bg_ready.wait()  # Wait until the loop is ready
+
+            loop = cls._bg_loop
+            if loop is None:
+                msg = "Background event loop failed to start"
+                raise RuntimeError(msg)
+            return loop
+
+    async def search(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
+        await self.create()
+        query = payload.get("query", "")
+        filters = payload.get("filters")
+        # Normalize limit to int when possible
+        lim: int | None
+        try:
+            lim = int(payload.get("limit")) if payload.get("limit") is not None else None
+        except (TypeError, ValueError):
+            lim = None
+
+        # Build kwargs with non-empty args to simplify branching
+        kwargs: dict[str, Any] = {}
+        if lim is not None:
+            kwargs["limit"] = lim
+        if isinstance(filters, dict):
+            kwargs["filters"] = filters
+        else:
+            if payload.get("user_id"):
+                kwargs["user_id"] = payload.get("user_id")
+            if payload.get("agent_id"):
+                kwargs["agent_id"] = payload.get("agent_id")
+            if payload.get("run_id"):
+                kwargs["run_id"] = payload.get("run_id")
+
+        async with self._semaphore:
+            results = await self.memory.search(query, **kwargs)
+
+        normalized = _normalize_search_results(results)
+        return normalized[:lim] if isinstance(lim, int) and lim > 0 else normalized
+
+    async def add(self, payload: dict[str, Any]) -> dict[str, Any]:
+        await self.create()
+        metadata = payload.get("metadata")
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except (json.JSONDecodeError, TypeError):
+                metadata = None
+
+        kwargs: dict[str, Any] = {}
+        if payload.get("user_id"):
+            kwargs["user_id"] = payload.get("user_id")
+        if payload.get("agent_id"):
+            kwargs["agent_id"] = payload.get("agent_id")
+        if payload.get("run_id"):
+            kwargs["run_id"] = payload.get("run_id")
+        if metadata is not None:
+            kwargs["metadata"] = metadata
+        if self.use_custom_prompt:
+            kwargs["prompt"] = self.custom_prompt
+
+        messages = payload.get("messages")
+        # Skip add when messages is empty/blank, return response aligned with mem0 add result shape
+        if messages is None or (
+            isinstance(messages, str) and messages.strip() == ""
+        ) or (
+            isinstance(messages, (list, tuple)) and len(messages) == 0
+        ):
+            return ADD_SKIP_RESULT
+
+        # Limit concurrent add() to avoid exhausting DB connection pool
+        async with self._semaphore:
+            # Await to ensure persistence before returning
+            return await self.memory.add(messages, **kwargs)
+
+    async def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        await self.create()
+        filters = params.get("filters")
+        if isinstance(filters, dict):
+            try:
+                async with self._semaphore:
+                    results = await self.memory.get_all(filters=filters)
+            except TypeError:
+                results = []
+        else:
+            async with self._semaphore:
+                results = await self.memory.get_all(
+                    user_id=params.get("user_id"),
+                    agent_id=params.get("agent_id"),
+                    run_id=params.get("run_id"),
+                )
+        return results or []
+
+    async def get(self, memory_id: str) -> dict[str, Any]:
+        await self.create()
+        async with self._semaphore:
+            return await self.memory.get(memory_id)
+
+    async def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        await self.create()
+        async with self._semaphore:
+            return await self.memory.update(memory_id, payload.get("text"))
+
+    async def delete(self, memory_id: str) -> dict[str, Any]:
+        await self.create()
+        async with self._semaphore:
+            return await self.memory.delete(memory_id)
+
+    async def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
+        await self.create()
+        async with self._semaphore:
+            return await self.memory.delete_all(
+                user_id=params.get("user_id"),
+                agent_id=params.get("agent_id"),
+                run_id=params.get("run_id"),
+            )
+
+    async def history(self, memory_id: str) -> list[dict[str, Any]]:
+        await self.create()
+        async with self._semaphore:
+            return await self.memory.history(memory_id)

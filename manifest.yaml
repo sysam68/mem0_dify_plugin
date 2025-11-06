@@ -1,4 +1,4 @@
-version: 0.0.4
+version: 0.0.6
 type: plugin
 author: beersoccer
 name: mem0
@@ -12,7 +12,7 @@ description:
   zh_Hans: mem0 的 Dify 插件（支持完整的 API v2 功能）
 icon: mem0.png
 resource:
-  memory: 663792000
+  memory: 667746000
   permission:
     tool:
       enabled: true
@@ -26,7 +26,7 @@ meta:
     - arm64
   runner:
     language: python
-    version: "3.13"
+    version: "3.12"
     entrypoint: main
 created_at: 2025-10-24T09:09:09+00:00
 privacy: PRIVACY.md

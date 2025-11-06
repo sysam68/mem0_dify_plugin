@@ -12,6 +12,7 @@ Each is expected to be a JSON object with at least {"provider": ..., "config": {
 
 from __future__ import annotations
 
+import ast
 import json
 from typing import Any
 from urllib.parse import quote_plus
@@ -21,19 +22,48 @@ class ConfigError(ValueError):
     pass
 
 
-def _parse_json_block(raw: str | None, field_name: str) -> dict[str, Any] | None:
-    if raw is None or str(raw).strip() == "":
+def _parse_json_block(raw: str | dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
+    if raw is None:
         return None
-    try:
-        data = json.loads(raw)
-    except (json.JSONDecodeError, TypeError) as e:
-        raise ConfigError(f"{field_name} is not valid JSON: {e}") from e
+    # Accept already-parsed dicts from upstream runtimes
+    if isinstance(raw, dict):
+        data = raw
+    else:
+        text = str(raw).strip()
+        if text == "":
+            return None
+        # Strip code fences if user pasted with ```json ... ```
+        if text.startswith("```"):
+            lines = text.splitlines()
+            # Drop first fence line and possible trailing fence
+            if lines:
+                lines = lines[1:]
+            if lines and lines[-1].strip().startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        # First try strict JSON
+        try:
+            data = json.loads(text)
+        except (json.JSONDecodeError, TypeError):
+            # Fallback: accept Python-literal style dicts (single quotes, etc.)
+            try:
+                candidate = ast.literal_eval(text)
+                if not isinstance(candidate, dict):
+                    msg = f"{field_name} must be a JSON object"
+                    raise ConfigError(msg)
+                data = candidate
+            except Exception as e:  # noqa: BLE001 - surface parse errors
+                msg = f"{field_name} is not valid JSON: {e}"
+                raise ConfigError(msg) from e
     if not isinstance(data, dict):
-        raise ConfigError(f"{field_name} must be a JSON object")
+        msg = f"{field_name} must be a JSON object"
+        raise ConfigError(msg)
     provider = data.get("provider")
     cfg = data.get("config")
     if not provider or not isinstance(cfg, dict):
-        raise ConfigError(f"{field_name} must include 'provider' and 'config' object")
+        msg = f"{field_name} must include 'provider' and 'config' object"
+        raise ConfigError(msg)
     return data
 
 
@@ -85,11 +115,14 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
     vector_store = _parse_json_block(credentials.get("local_vector_db_json"), "local_vector_db_json")
 
     if llm is None:
-        raise ConfigError("LLM configuration (local_llm_json) is required in Local mode")
+        msg = "LLM configuration (local_llm_json) is required in Local mode"
+        raise ConfigError(msg)
     if embedder is None:
-        raise ConfigError("Embedder configuration (local_embedder_json) is required in Local mode")
+        msg = "Embedder configuration (local_embedder_json) is required in Local mode"
+        raise ConfigError(msg)
     if vector_store is None:
-        raise ConfigError("Vector Database configuration (local_vector_db_json) is required in Local mode")
+        msg = "Vector Database configuration (local_vector_db_json) is required in Local mode"
+        raise ConfigError(msg)
 
     # Normalize pgvector config shape if necessary
     if (vector_store.get("provider") == "pgvector" and isinstance(vector_store.get("config"), dict)):

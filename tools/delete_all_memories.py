@@ -4,7 +4,7 @@ from typing import Any
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 
-from utils.mem0_client import get_mem0_client
+from utils.mem0_client import LocalClient
 
 class DeleteAllMemoriesTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -25,7 +25,7 @@ class DeleteAllMemoriesTool(Tool):
             return
 
         try:
-            client = get_mem0_client(self.runtime.credentials)
+            client = LocalClient(self.runtime.credentials)
             result = client.delete_all(params)
 
             yield self.create_json_message({
