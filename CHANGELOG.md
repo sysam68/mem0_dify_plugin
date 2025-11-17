@@ -1,5 +1,57 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.0.9 (2025-11-17)
+
+### 🎯 Unified Return Format & Enhanced Async Operations
+
+This release focuses on standardizing tool outputs and extending non-blocking async behavior to all write operations.
+
+#### Highlights
+- **Unified JSON Return Structure**:
+  - All tools now return consistent format: `{"status": "SUCCESS/ERROR", "messages": {...}, "results": {...}}`
+  - `status`: Operation status (SUCCESS or ERROR)
+  - `messages`: Context information (query params, filters, IDs, etc.)
+  - `results`: Actual data (memories, history, operation results)
+  
+- **Enhanced Async Operations**:
+  - Write operations (Add/Update/Delete/Delete_All) are now non-blocking in async mode
+  - Return ACCEPT messages immediately: `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, `DELETE_ALL_ACCEPT_RESULT`
+  - Read operations (Search/Get/Get_All/History) always wait for results
+  
+- **Standardized Return Fields**:
+  - Search/Get/Get_All: `id`, `memory`, `metadata`, `created_at`, `updated_at`
+  - History: `memory_id`, `old_memory`, `new_memory`, `event`, `created_at`, `updated_at`, `is_deleted`
+  - Removed redundant fields: `hash`, `user_id`, `agent_id`, `run_id` from individual memory objects
+  
+- **Extended Constants** (`utils/constants.py`):
+  - Added `UPDATE_ACCEPT_RESULT`: `{"message": "Memory update has been accepted"}`
+  - Added `DELETE_ACCEPT_RESULT`: `{"message": "Memory deletion has been accepted"}`
+  - Added `DELETE_ALL_ACCEPT_RESULT`: `{"message": "Batch memory deletion has been accepted"}`
+  
+- **Complete Documentation**:
+  - All methods in `LocalClient` and `AsyncLocalClient` now have comprehensive docstrings
+  - Consistent parameter descriptions and return value documentation
+  - Clear async vs sync behavior documentation
+
+#### Technical Details
+- **Async Mode Behavior**:
+  - When `async_mode=true` (default):
+    - Add/Update/Delete/Delete_All: Submit to background loop without waiting, return ACCEPT status
+    - Search/Get/Get_All/History: Wait for results via `asyncio.run_coroutine_threadsafe().result()`
+  - When `async_mode=false`:
+    - All operations use `LocalClient` and block until completion
+    
+- **Error Handling**:
+  - All error responses include `"results": []` for consistency
+  - Exception types unified: `(ValueError, RuntimeError, TypeError)`
+
+#### Migration Notes
+- Tool outputs now use `status` instead of `event` for top-level status indicator
+- If your workflow parses tool outputs, update to use the new field names
+- Async write operations now return ACCEPT messages instead of actual results
+
+---
+
 ## Version 0.0.8 (2025-11-11)
 
 - Add async_mode provider credential (default true) with clear runtime behavior
@@ -52,28 +104,28 @@ This version brings complete support for Mem0's latest API features, including v
 
 ### 📦 6 New Tools Added
 
-1. **Get All Memories** (`get_all_mem0ai_memories`)
+1. **Get All Memories** (`get_all_memories`)
    - Retrieve all memories for a user, agent, app, or run
    - Supports pagination with limit parameter
    - Multi-entity filtering support
 
-2. **Get Memory** (`get_mem0ai_memory`)
+2. **Get Memory** (`get_memory`)
    - Fetch a specific memory by its ID
    - Returns complete memory details including metadata
 
-3. **Update Memory** (`update_mem0ai_memory`)
+3. **Update Memory** (`update_memory`)
    - Update existing memory content
    - Preserves memory metadata and entity associations
 
-4. **Delete Memory** (`delete_mem0ai_memory`)
+4. **Delete Memory** (`delete_memory`)
    - Delete a specific memory by ID
    - Safe deletion with confirmation
 
-5. **Delete All Memories** (`delete_all_mem0ai_memories`)
+5. **Delete All Memories** (`delete_all_memories`)
    - Batch delete memories by entity filters
    - Requires at least one entity ID for safety
 
-6. **Get Memory History** (`get_mem0ai_memory_history`)
+6. **Get Memory History** (`get_memory_history`)
    - View complete change history of a memory
    - Shows previous and new values for each change
 
@@ -148,7 +200,7 @@ All tools now support multiple entity types:
 
 ### Memory Management (8 Tools)
 1. ✅ Add Memory - Create new memories
-2. ✅ Retrieve Memory - Search memories with advanced filters
+2. ✅ Search Memory - Search memories with advanced filters
 3. ✅ Get All Memories - List all memories
 4. ✅ Get Memory - Get single memory details
 5. ✅ Update Memory - Modify existing memories

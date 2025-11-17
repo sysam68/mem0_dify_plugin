@@ -12,7 +12,7 @@ from utils.constants import SEARCH_DEFAULT_TOP_K
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
 
-class SearchMem0Tool(Tool):
+class SearchMemoryTool(Tool):
     """Tool that builds a search payload and delegates to mem0_client.search."""
 
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -40,7 +40,7 @@ class SearchMem0Tool(Tool):
                 )
             except json.JSONDecodeError as json_err:
                 msg = f"Invalid JSON in filters: {json_err}"
-                yield self.create_json_message({"status": "error", "error": msg})
+                yield self.create_json_message({"status": "ERROR", "messages": msg, "results": []})
                 yield self.create_text_message(f"Failed to search memory: {msg}")
                 return
         # Optional scoping fields
@@ -82,13 +82,14 @@ class SearchMem0Tool(Tool):
                         "id": r.get("id"),
                         "memory": r.get("memory"),
                         "score": r.get("score", 0.0),
-                        "categories": r.get("categories", []),
+                        "metadata": r.get("metadata", {}),
                         "created_at": r.get("created_at", ""),
                     },
                 )
 
             yield self.create_json_message({
-                "query": payload.get("query", ""),
+                "status": "SUCCESS",
+                "messages": payload.get("query", ""),
                 "results": norm_results,
             })
 
@@ -101,9 +102,9 @@ class SearchMem0Tool(Tool):
                     score = r.get("score")
                     if isinstance(score, (int, float)):
                         lines.append(f"   Score: {score:.2f}")
-                    cats = r.get("categories") or []
-                    if cats:
-                        lines.append(f"   Categories: {', '.join(cats)}")
+                    md = r.get("metadata")
+                    if md:
+                        lines.append(f"   Metadata: {md}")
             else:
                 lines.append("")
                 lines.append("No results found.")
@@ -113,9 +114,11 @@ class SearchMem0Tool(Tool):
         except json.JSONDecodeError as e:
             # Should not happen here, but guard anyway
             error_message = f"Error parsing JSON: {e}"
-            yield self.create_json_message({"status": "error", "error": error_message})
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to search memory: {error_message}")
-        except Exception as e:  # noqa: BLE001 - surface unexpected errors
+        except (ValueError, RuntimeError, TypeError) as e:
             error_message = f"Error: {e}"
-            yield self.create_json_message({"status": "error", "error": error_message})
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to search memory: {error_message}")

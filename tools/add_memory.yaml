@@ -1,14 +1,14 @@
 identity:
-  name: add_mem0ai_memory
+  name: add_memory
   author: beersoccer
   label:
     en_US: Add Memory
-    zh_Hans: 记忆添加
+    zh_Hans: 添加记忆
 description:
   human:
-    en_US: Add memory node
-    zh_Hans: 记忆添加节点
-  llm: Add memory node
+    en_US: Add memory into the Mem0 by storing user-assistant interactions and facts for later retrieval
+    zh_Hans: 通过将用户与助手的对话和事实存储到 Mem0，便于后续检索
+  llm: Add memory into the Mem0 by storing user-assistant interactions and facts for later retrieval
 parameters:
   - name: user
     type: string
@@ -54,7 +54,6 @@ parameters:
       zh_Hans: 可选的代理标识符。
     llm_description: Optional agent identifier.
     form: llm
-  
   - name: run_id
     type: string
     required: false

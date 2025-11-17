@@ -1,15 +1,13 @@
 identity:
-  name: get_all_mem0ai_memories
+  name: get_all_memories
   author: beersoccer
   label:
     en_US: Get All Memories
     zh_Hans: 获取所有记忆
-    pt_BR: Obter Todas as Memórias
 description:
   human:
     en_US: Get all memories for a specific user, agent, or run
     zh_Hans: 获取特定用户、代理或运行的所有记忆
-    pt_BR: Obter todas as memórias para um usuário, agente ou execução específica
   llm: Get all memories for a specific user, agent, or run
 parameters:
   - name: user_id
@@ -18,11 +16,9 @@ parameters:
     label:
       en_US: User ID
       zh_Hans: 用户ID
-      pt_BR: ID do Usuário
     human_description:
       en_US: The unique identifier for the user. At least one of user_id, agent_id, or run_id must be provided.
       zh_Hans: 用户的唯一标识符。必须提供 user_id、agent_id 或 run_id 中的至少一个。
-      pt_BR: O identificador único do usuário. Pelo menos um de user_id, agent_id ou run_id deve ser fornecido.
     llm_description: The unique identifier for the user. At least one of user_id, agent_id, or run_id must be provided.
     form: llm
   - name: agent_id
@@ -31,11 +27,9 @@ parameters:
     label:
       en_US: Agent ID
       zh_Hans: 代理ID
-      pt_BR: ID do Agente
     human_description:
       en_US: The unique identifier for the agent.
       zh_Hans: 代理的唯一标识符。
-      pt_BR: O identificador único do agente.
     llm_description: The unique identifier for the agent.
     form: llm
   - name: run_id
@@ -44,11 +38,9 @@ parameters:
     label:
       en_US: Run ID
       zh_Hans: 运行ID
-      pt_BR: ID da Execução
     human_description:
       en_US: The unique identifier for the run.
       zh_Hans: 运行的唯一标识符。
-      pt_BR: O identificador único da execução.
     llm_description: The unique identifier for the run.
     form: llm
   - name: limit
@@ -57,11 +49,9 @@ parameters:
     label:
       en_US: Limit
       zh_Hans: 限制数量
-      pt_BR: Limite
     human_description:
       en_US: Maximum number of memories to return (default is 100).
       zh_Hans: 返回的最大记忆数量（默认为 100）。
-      pt_BR: Número máximo de memórias a retornar (padrão é 100).
     llm_description: Maximum number of memories to return (default is 100).
     form: llm
 extra:

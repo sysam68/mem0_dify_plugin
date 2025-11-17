@@ -1,11 +1,11 @@
-# Mem0 Dify Plugin v0.0.8 - 安装指南
+# Mem0 Dify Plugin v0.0.9 - 安装指南
 
 ## 📦 安装步骤
 
 ### 1. 获取插件包
 
 插件已打包为 `.difypkg` 文件（版本号以实际发布为准）：
-- **文件名**: `mem0-0.0.8.difypkg`
+- **文件名**: `mem0-0.0.9.difypkg`
 - **大小**: ~600KB
 - **位置**: Releases 页面
 
@@ -23,7 +23,7 @@
 
 3. **上传插件**
    - 点击 **"Upload Plugin"** 或 **"安装插件"** 按钮
-   - 选择 `mem0-0.0.8.difypkg` 文件
+   - 选择 `mem0-0.0.9.difypkg` 文件
    - 等待上传和安装完成
 
 4. **配置本地模式凭证**
@@ -37,7 +37,7 @@
 
 ```bash
 # 如果你有 dify-cli 工具
-dify plugin install mem0-0.0.8.difypkg
+dify plugin install mem0-0.0.9.difypkg
 ```
 
 ---
@@ -234,6 +234,13 @@ cd /Users/howsun/Warp/dify/mem0-plugin-update
    - 合理使用过滤器减少查询范围
    - 插件内部使用单进程级后台事件循环与信号量限制并发
    - 进程退出时会优雅停止后台 loop
+
+4. **异步模式（v0.0.9+）**
+   - `async_mode` 默认为 true（异步模式）
+   - 异步模式下：
+     - 写操作（Add/Update/Delete/Delete_All）非阻塞，立即返回 ACCEPT 状态
+     - 读操作（Search/Get/Get_All/History）等待结果返回
+   - 同步模式下：所有操作阻塞直至完成
 
 ---
 

@@ -21,6 +21,24 @@ ADD_ACCEPT_RESULT: dict[str, object] = {
     ]
 }
 
+UPDATE_ACCEPT_RESULT: dict[str, object] = {
+    "results": {
+        "message": "Memory update has been accepted"
+    }
+}
+
+DELETE_ACCEPT_RESULT: dict[str, object] = {
+    "results": {
+        "message": "Memory deletion has been accepted"
+    }
+}
+
+DELETE_ALL_ACCEPT_RESULT: dict[str, object] = {
+    "results": {
+        "message": "Batch memory deletion has been accepted"
+    }
+}
+
 # The maximum timeout (in seconds) for a single request, to avoid long waits or hanging connections.
 MAX_REQUEST_TIMEOUT: int = 120
 

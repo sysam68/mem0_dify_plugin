@@ -128,21 +128,30 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
 
 ### Runtime behavior (important)
 
-- Asynchronous execution:
-  - Tools submit async coroutines to a single process-wide background event loop.
-  - `add_memory` is non-blocking by default: it enqueues the operation and returns immediately with a queued status. Empty/blank messages are skipped.
-  - `search_memory` runs on the background loop and returns both normalized JSON and a detailed text block for downstream nodes.
-- Graceful shutdown:
-  - The plugin registers an exit hook and SIGTERM/SIGINT handlers to drain pending tasks briefly and stop the background loop.
-- Constants:
-  - Key defaults (e.g., `SEARCH_DEFAULT_TOP_K`, `MAX_CONCURRENT_MEM_ADDS`, `MAX_REQUEST_TIMEOUT`) are centralized in `utils/constants.py`.
+- **Asynchronous execution**:
+  - Tools submit async coroutines to a single process-wide background event loop
+  - Write operations (Add/Update/Delete/Delete_All) are non-blocking: return ACCEPT status immediately
+  - Read operations (Search/Get/Get_All/History) wait for results and return actual data
+  
+- **Unified return format**:
+  - All tools return: `{"status": "SUCCESS/ERROR", "messages": {...}, "results": {...}}`
+  - Write ops in async mode return ACCEPT results: `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, etc.
+  
+- **Graceful shutdown**:
+  - The plugin registers an exit hook and SIGTERM/SIGINT handlers to drain pending tasks briefly and stop the background loop
+  
+- **Constants** (`utils/constants.py`):
+  - `SEARCH_DEFAULT_TOP_K`, `MAX_CONCURRENT_MEM_ADDS`, `MAX_REQUEST_TIMEOUT`
+  - `ADD_SKIP_RESULT`, `ADD_ACCEPT_RESULT`, `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, `DELETE_ALL_ACCEPT_RESULT`
+  - `CUSTOM_PROMPT` for memory extraction
 
 ### Async mode switch
-- `async_mode` is a provider credential (boolean) and defaults to true.
-- When `async_mode=true`:
-  - Add is non-blocking (queued); Search waits for results.
+- `async_mode` is a provider credential (boolean) and defaults to true
+- When `async_mode=true` (default):
+  - Write operations (Add/Update/Delete/Delete_All): non-blocking, return ACCEPT status immediately
+  - Read operations (Search/Get/Get_All/History): wait for results
 - When `async_mode=false`:
-  - All operations (Add/Search/Get/Update/Delete/History) block until completion.
+  - All operations block until completion
 
 ## User Privacy Policy
 

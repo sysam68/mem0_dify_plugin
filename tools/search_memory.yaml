@@ -1,14 +1,14 @@
 identity:
-  name: retrieve_mem0ai_memory
+  name: search_memory
   author: beersoccer
   label:
-    en_US: Memory Retrieval
-    zh_Hans: 记忆检索
+    en_US: Search Memory
+    zh_Hans: 搜索记忆
 description:
   human:
-    en_US: Memory retrieval node
-    zh_Hans: 记忆检索节点
-  llm: Memory retrieval node
+    en_US: Retrieve relevant memories from Mem0 using powerful semantic and filtered search capabilities
+    zh_Hans: 使用强大的语义检索和筛选功能，从 Mem0 检索相关记忆
+  llm: Retrieve relevant memories from Mem0 using powerful semantic and filtered search capabilities
 parameters:
   - name: query
     type: string
@@ -28,9 +28,9 @@ parameters:
       en_US: User ID
       zh_Hans: 用户ID
     human_description:
-      en_US: Required user identifier for scoping the retrieval.
-      zh_Hans: 必填，用于限定检索范围的用户标识符。
-    llm_description: Required user identifier for scoping the retrieval.
+      en_US: Required user identifier for scoping the search.
+      zh_Hans: 必填，用于限定搜索范围的用户标识符。
+    llm_description: Required user identifier for scoping the search.
     form: llm
   - name: agent_id
     type: string

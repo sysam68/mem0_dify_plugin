@@ -5,9 +5,9 @@ identity:
     en_US: mem0
     zh_Hans: mem0
   description:
-    en_US: mem0
-    zh_Hans: mem0
-  icon: mem0.png
+    en_US: mem0 plugin, local-only mode, async_mode enabled by default.
+    zh_Hans: mem0 插件，仅本地模式，async_mode 默认开启。
+  icon: mem0_plugin.png
   tags:
     - utilities
 credentials_for_provider:

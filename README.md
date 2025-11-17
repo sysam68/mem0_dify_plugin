@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.0.8
+# Mem0 Dify Plugin v0.0.9
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,24 +29,20 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 📊 **Metadata System** - Custom JSON metadata for rich context
 - 🔍 **Filters** - JSON filters supported by Mem0 local mode
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
- - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Add is non-blocking in async mode, Search always waits; in sync mode all operations block until completion.
+ - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What’s New (v0.0.8)
-- Centralized constants in `utils/constants.py`:
-  - `MAX_CONCURRENT_MEM_ADDS` (default: 5)
-  - `SEARCH_DEFAULT_TOP_K` (default: 5)
-  - `MAX_REQUEST_TIMEOUT` (default: 120)
-  - `ADD_SKIP_RESULT`, `ADD_ACCEPT_RESULT`, `CUSTOM_PROMPT`
-- Background event loop:
-  - A single process-wide loop is created once and reused
-  - Tools submit async coroutines via `asyncio.run_coroutine_threadsafe(...)`
-- Graceful shutdown:
-  - At exit and on SIGTERM/SIGINT, the plugin drains pending tasks briefly and stops the loop
-- Add memory is non-blocking by default:
-  - Tool enqueues the operation and returns `{"status": "queued", ...}` immediately
-  - Empty/blank messages are skipped with `{"status": "skipped", "reason": "no messages", ...}`
-- Search memory:
-  - Uses the background loop and returns normalized JSON + detailed text for downstream nodes
+### What's New (v0.0.9)
+- **Unified Return Format**: All tools return consistent JSON structure `{"status": "SUCCESS/ERROR", "messages": {...}, "results": {...}}`
+- **Enhanced Async Operations**: Update, Delete, and Delete_All are now non-blocking in async mode, returning ACCEPT messages
+- **Standardized Fields**:
+  - Search/Get/Get_All: id, memory, metadata, created_at, updated_at
+  - History: memory_id, old_memory, new_memory, event, created_at, updated_at, is_deleted
+- **Extended Constants**: Added `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, `DELETE_ALL_ACCEPT_RESULT`
+- **Complete Documentation**: All methods in mem0_client.py now have comprehensive docstrings
+- **Async Mode Behavior**:
+  - Write operations (Add/Update/Delete/Delete_All): non-blocking, return immediately with ACCEPT status
+  - Read operations (Search/Get/Get_All/History): always wait for results
+  - Sync mode: all operations block until completion
 
 ---
 
@@ -70,7 +66,7 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 
 ### Method 2: Install from Package
 
-Download `mem0-0.0.8.difypkg` from [Releases](../../releases) and upload it manually in Dify.
+Download `mem0-0.0.9.difypkg` from [Releases](../../releases) and upload it manually in Dify.
 
 ---
 
@@ -204,10 +200,10 @@ search(
 ### Async Mode
 - `async_mode` (boolean, default: true)
   - When true (default):
-    - Add: non-blocking queued submission, returns immediately
-    - Search: always waits for results (synchronous return)
+    - Write operations (Add/Update/Delete/Delete_All): non-blocking, return ACCEPT status immediately
+    - Read operations (Search/Get/Get_All/History): always wait for results
   - When false:
-    - All operations block until completion (Add/Search/Get/Update/Delete/History)
+    - All operations block until completion
 
 Example Vector DB JSON (pgvector):
 ```json
@@ -261,6 +257,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.0.9 | 2025-11-17 | Unified return format, enhanced async operations (Update/Delete/Delete_All non-blocking), standardized fields, extended constants, complete documentation |
 | v0.0.8 | 2025-11-11 | async_mode credential (default true), sync/async tool routing, provider validation aligned, docs updated |
 | v0.0.7 | 2025-11-08 | Local-only refactor, centralized constants, background event loop with graceful shutdown, non-blocking add (queued), search via background loop, normalized outputs |
 | v0.0.4 | 2025-10-29 | Dual-mode (SaaS/Local), unified client, simplified Local JSON config, search top_k, add requires user_id, HTTP→SDK refactor |
