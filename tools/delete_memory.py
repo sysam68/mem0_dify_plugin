@@ -1,11 +1,13 @@
-from collections.abc import Generator
 import asyncio
+from collections.abc import Generator
 from typing import Any
+
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
-
 from utils.config_builder import is_async_mode
+from utils.constants import DELETE_ACCEPT_RESULT
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
 
 class DeleteMemoryTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -15,21 +17,28 @@ class DeleteMemoryTool(Tool):
             async_mode = is_async_mode(self.runtime.credentials)
             if async_mode:
                 client = AsyncLocalClient(self.runtime.credentials)
+                # Submit delete to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
-                _ = asyncio.run_coroutine_threadsafe(client.delete(memory_id), loop).result()
+                asyncio.run_coroutine_threadsafe(client.delete(memory_id), loop)
+
+                yield self.create_json_message({
+                    "status": "SUCCESS",
+                    "messages": {"memory_id": memory_id},
+                    **DELETE_ACCEPT_RESULT,
+                })
+                yield self.create_text_message("Asynchronous memory deletion has been accepted.")
             else:
                 client = LocalClient(self.runtime.credentials)
-                _ = client.delete(memory_id)
+                result = client.delete(memory_id)
+                yield self.create_json_message({
+                    "status": "SUCCESS",
+                    "messages": {"memory_id": memory_id},
+                    "results": result,
+                })
+                yield self.create_text_message(f"Memory {memory_id} deleted successfully!")
 
-            yield self.create_json_message({
-                "status": "success",
-                "message": f"Memory '{memory_id}' deleted successfully",
-                "memory_id": memory_id
-            })
-
-            yield self.create_text_message(f"Memory deleted successfully!\n\nDeleted Memory ID: {memory_id}")
-
-        except Exception as e:
-            error_message = f"Error: {str(e)}"
-            yield self.create_json_message({"status": "error", "error": error_message})
+        except (ValueError, RuntimeError, TypeError) as e:
+            error_message = f"Error: {e!s}"
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to delete memory: {error_message}")

@@ -32,7 +32,7 @@ def _normalize_search_results(results: object) -> list[dict[str, Any]]:
                 "id": r.get("id") or r.get("memory_id") or "",
                 "memory": r.get("memory") or r.get("text") or "",
                 "score": r.get("score") or r.get("similarity", 0.0),
-                "categories": r.get("categories") or [],
+                "metadata": r.get("metadata") or {},
                 "created_at": r.get("created_at") or r.get("timestamp") or "",
             },
         )
@@ -43,45 +43,91 @@ class LocalClient:
     """Local Mem0 client using configured providers."""
 
     def __init__(self, credentials: dict[str, Any]) -> None:
+        """Initialize the LocalClient.
+
+        Args:
+            credentials (dict): Configuration for the LocalClient.
+
+        """
         config = build_local_mem0_config(credentials)
         self.memory = Memory.from_config(config)
-        # Keep behavior aligned with AsyncLocalClient
         self.use_custom_prompt = True
         self.custom_prompt = CUSTOM_PROMPT
 
     def search(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Search for memories based on a query.
+
+        Args:
+            payload (dict): Search parameters. Supported keys:
+                - query (str): Query to search for.
+                - user_id (str, optional): ID of the user.
+                - agent_id (str, optional): ID of the agent.
+                - run_id (str, optional): ID of the run.
+                - limit (int, optional): Max number of results.
+                - filters (dict, optional): Metadata filters, supporting:
+                    * {"key": "value"} (exact match)
+                    * {"key": {"eq"/"ne"/"in"/"nin"/"gt"/"gte"/"lt"/"lte"/"contains"/"icontains"}: ...}
+                    * {"key": "*"} (wildcard)
+                    * {"AND"/"OR"/"NOT": [filters,...]} (logic ops)
+                - threshold (float, optional): Minimum score (not used in local mode).
+
+        Returns:
+            list[dict]: List of memory search results.
+
+        """
         query = payload.get("query", "")
         filters = payload.get("filters")
         limit = payload.get("limit")
-        # In local mode, ignore any API version settings; support filters when provided
-        if isinstance(filters, dict):
-            if limit is not None:
-                results = self.memory.search(query, filters=filters, limit=limit)
-            else:
-                results = self.memory.search(query, filters=filters)
-        elif limit is not None:
-            results = self.memory.search(
-                query,
-                user_id=payload.get("user_id"),
-                agent_id=payload.get("agent_id"),
-                run_id=payload.get("run_id"),
-                limit=limit,
-            )
-        else:
-            results = self.memory.search(
-                query,
-                user_id=payload.get("user_id"),
-                agent_id=payload.get("agent_id"),
-                run_id=payload.get("run_id"),
-            )
-        normalized = _normalize_search_results(results)
+
+        # Normalize limit to int when possible
         try:
             lim = int(limit) if limit is not None else None
         except (TypeError, ValueError):
             lim = None
-        return normalized[:lim] if lim and lim > 0 else normalized
+
+        # Build kwargs with non-empty args to simplify branching
+        kwargs: dict[str, Any] = {}
+        if lim is not None:
+            kwargs["limit"] = lim
+        if isinstance(filters, dict):
+            kwargs["filters"] = filters
+        else:
+            if payload.get("user_id"):
+                kwargs["user_id"] = payload.get("user_id")
+            if payload.get("agent_id"):
+                kwargs["agent_id"] = payload.get("agent_id")
+            if payload.get("run_id"):
+                kwargs["run_id"] = payload.get("run_id")
+
+        results = self.memory.search(query, **kwargs)
+        return _normalize_search_results(results)
 
     def add(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create a new memory.
+
+        Adds new memories scoped to a single session id (e.g. user_id, agent_id, or run_id).
+        One of those ids is required.
+
+        Args:
+            payload (dict): A dictionary containing all parameters for adding a memory, including:
+                - messages (str or list[dict[str, str]]): The message content or list of messages
+                  (e.g., [{"role": "user", "content": "Hello"}, ...]) to process and store.
+                - user_id (str, optional): ID of the user creating the memory.
+                - agent_id (str, optional): ID of the agent creating the memory.
+                - run_id (str, optional): ID of the run creating the memory.
+                - metadata (dict or str, optional): Metadata to store with the memory.
+                  Can be a dict or a JSON string.
+                - infer (bool, optional): If True (default), uses LLM to extract key facts
+                  and manage memories.
+                - memory_type (str, optional): Type of memory. Defaults to conversational or factual.
+                  Use "procedural_memory" for procedural type.
+                - prompt (str, optional): Custom prompt to use for memory creation.
+
+        Returns:
+            dict: Result of the memory addition, typically with items added/updated (in "results"),
+            and possibly "relations" if graph store is enabled.
+
+        """
         metadata = payload.get("metadata")
         if isinstance(metadata, str):
             try:
@@ -107,6 +153,20 @@ class LocalClient:
         return self.memory.add(messages, **kwargs)
 
     def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Get all memories based on filters or user/agent/run identifiers.
+
+        Args:
+            params (dict): Parameters including:
+                - user_id (str, optional): User ID to filter by.
+                - agent_id (str, optional): Agent ID to filter by.
+                - run_id (str, optional): Run ID to filter by.
+                - limit (int, optional): Maximum number of results.
+                - filters (dict, optional): Advanced metadata filters.
+
+        Returns:
+            list[dict]: List of memory objects.
+
+        """
         filters = params.get("filters")
         # In local mode, ignore version; support filters directly when provided
         if isinstance(filters, dict):
@@ -125,15 +185,55 @@ class LocalClient:
         return results or []
 
     def get(self, memory_id: str) -> dict[str, Any]:
+        """Get a single memory by ID.
+
+        Args:
+            memory_id (str): The ID of the memory to retrieve.
+
+        Returns:
+            dict: Memory object with id, memory, metadata, created_at, updated_at, etc.
+
+        """
         return self.memory.get(memory_id)
 
     def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Update a memory by ID.
+
+        Args:
+            memory_id (str): ID of the memory to update.
+            payload (dict): Dictionary containing new content under the "text" key.
+
+        Returns:
+            dict: Success message indicating the memory was updated.
+
+        """
         return self.memory.update(memory_id, payload.get("text"))
 
     def delete(self, memory_id: str) -> dict[str, Any]:
+        """Delete a memory by ID.
+
+        Args:
+            memory_id (str): The ID of the memory to delete.
+
+        Returns:
+            dict: Success message, typically {"message": "Memory deleted successfully!"}.
+
+        """
         return self.memory.delete(memory_id)
 
     def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Delete all memories matching the given filters.
+
+        Args:
+            params (dict): Parameters including:
+                - user_id (str, optional): User ID to filter by.
+                - agent_id (str, optional): Agent ID to filter by.
+                - run_id (str, optional): Run ID to filter by.
+
+        Returns:
+            dict: Result of the deletion operation.
+
+        """
         return self.memory.delete_all(
             user_id=params.get("user_id"),
             agent_id=params.get("agent_id"),
@@ -141,6 +241,15 @@ class LocalClient:
         )
 
     def history(self, memory_id: str) -> list[dict[str, Any]]:
+        """Get the history of changes for a specific memory.
+
+        Args:
+            memory_id (str): The ID of the memory to get history for.
+
+        Returns:
+            list[dict]: List of history records with old_memory, new_memory, event, created_at, etc.
+
+        """
         return self.memory.history(memory_id)
 
 
@@ -266,13 +375,35 @@ class AsyncLocalClient:
         cls._bg_thread = None
 
     async def search(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Search for memories based on a query.
+
+        Args:
+            payload (dict): Search parameters. Supported keys:
+                - query (str): Query to search for.
+                - user_id (str, optional): ID of the user.
+                - agent_id (str, optional): ID of the agent.
+                - run_id (str, optional): ID of the run.
+                - limit (int, optional): Max number of results.
+                - filters (dict, optional): Metadata filters, supporting:
+                    * {"key": "value"} (exact match)
+                    * {"key": {"eq"/"ne"/"in"/"nin"/"gt"/"gte"/"lt"/"lte"/"contains"/"icontains"}: ...}
+                    * {"key": "*"} (wildcard)
+                    * {"AND"/"OR"/"NOT": [filters,...]} (logic ops)
+                - threshold (float, optional): Minimum score (not used in local mode).
+
+        Returns:
+            list[dict]: List of memory search results.
+
+        """
         await self.create()
         query = payload.get("query", "")
         filters = payload.get("filters")
+        limit = payload.get("limit")
+
         # Normalize limit to int when possible
         lim: int | None
         try:
-            lim = int(payload.get("limit")) if payload.get("limit") is not None else None
+            lim = int(limit) if limit is not None else None
         except (TypeError, ValueError):
             lim = None
 
@@ -293,10 +424,34 @@ class AsyncLocalClient:
         async with self._semaphore:
             results = await self.memory.search(query, **kwargs)
 
-        normalized = _normalize_search_results(results)
-        return normalized[:lim] if isinstance(lim, int) and lim > 0 else normalized
+        return _normalize_search_results(results)
 
     async def add(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create a new memory.
+
+        Adds new memories scoped to a single session id (e.g. user_id, agent_id, or run_id).
+        One of those ids is required.
+
+        Args:
+            payload (dict): A dictionary containing all parameters for adding a memory, including:
+                - messages (str or list[dict[str, str]]): The message content or list of messages
+                  (e.g., [{"role": "user", "content": "Hello"}, ...]) to process and store.
+                - user_id (str, optional): ID of the user creating the memory.
+                - agent_id (str, optional): ID of the agent creating the memory.
+                - run_id (str, optional): ID of the run creating the memory.
+                - metadata (dict or str, optional): Metadata to store with the memory.
+                  Can be a dict or a JSON string.
+                - infer (bool, optional): If True (default), uses LLM to extract key facts
+                  and manage memories.
+                - memory_type (str, optional): Type of memory. Defaults to conversational or factual.
+                  Use "procedural_memory" for procedural type.
+                - prompt (str, optional): Custom prompt to use for memory creation.
+
+        Returns:
+            dict: Result of the memory addition, typically with items added/updated (in "results"),
+            and possibly "relations" if graph store is enabled.
+
+        """
         await self.create()
         metadata = payload.get("metadata")
         if isinstance(metadata, str):
@@ -332,6 +487,20 @@ class AsyncLocalClient:
             return await self.memory.add(messages, **kwargs)
 
     async def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
+        """Get all memories based on filters or user/agent/run identifiers.
+
+        Args:
+            params (dict): Parameters including:
+                - user_id (str, optional): User ID to filter by.
+                - agent_id (str, optional): Agent ID to filter by.
+                - run_id (str, optional): Run ID to filter by.
+                - limit (int, optional): Maximum number of results.
+                - filters (dict, optional): Advanced metadata filters.
+
+        Returns:
+            list[dict]: List of memory objects.
+
+        """
         await self.create()
         filters = params.get("filters")
         if isinstance(filters, dict):
@@ -350,21 +519,61 @@ class AsyncLocalClient:
         return results or []
 
     async def get(self, memory_id: str) -> dict[str, Any]:
+        """Get a single memory by ID.
+
+        Args:
+            memory_id (str): The ID of the memory to retrieve.
+
+        Returns:
+            dict: Memory object with id, memory, metadata, created_at, updated_at, etc.
+
+        """
         await self.create()
         async with self._semaphore:
             return await self.memory.get(memory_id)
 
     async def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Update a memory by ID.
+
+        Args:
+            memory_id (str): ID of the memory to update.
+            payload (dict): Dictionary containing new content under the "text" key.
+
+        Returns:
+            dict: Success message indicating the memory was updated.
+
+        """
         await self.create()
         async with self._semaphore:
             return await self.memory.update(memory_id, payload.get("text"))
 
     async def delete(self, memory_id: str) -> dict[str, Any]:
+        """Delete a memory by ID.
+
+        Args:
+            memory_id (str): The ID of the memory to delete.
+
+        Returns:
+            dict: Success message, typically {"message": "Memory deleted successfully!"}.
+
+        """
         await self.create()
         async with self._semaphore:
             return await self.memory.delete(memory_id)
 
     async def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Delete all memories matching the given filters.
+
+        Args:
+            params (dict): Parameters including:
+                - user_id (str, optional): User ID to filter by.
+                - agent_id (str, optional): Agent ID to filter by.
+                - run_id (str, optional): Run ID to filter by.
+
+        Returns:
+            dict: Result of the deletion operation.
+
+        """
         await self.create()
         async with self._semaphore:
             return await self.memory.delete_all(
@@ -374,6 +583,15 @@ class AsyncLocalClient:
             )
 
     async def history(self, memory_id: str) -> list[dict[str, Any]]:
+        """Get the history of changes for a specific memory.
+
+        Args:
+            memory_id (str): The ID of the memory to get history for.
+
+        Returns:
+            list[dict]: List of history records with old_memory, new_memory, event, created_at, etc.
+
+        """
         await self.create()
         async with self._semaphore:
             return await self.memory.history(memory_id)

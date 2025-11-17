@@ -1,15 +1,13 @@
 identity:
-  name: get_mem0ai_memory_history
+  name: get_memory_history
   author: beersoccer
   label:
     en_US: Get Memory History
     zh_Hans: 获取记忆历史
-    pt_BR: Obter Histórico de Memória
 description:
   human:
     en_US: Get the change history of a specific memory
     zh_Hans: 获取特定记忆的变更历史
-    pt_BR: Obter o histórico de alterações de uma memória específica
   llm: Get the change history of a specific memory
 parameters:
   - name: memory_id
@@ -18,11 +16,9 @@ parameters:
     label:
       en_US: Memory ID
       zh_Hans: 记忆ID
-      pt_BR: ID da Memória
     human_description:
       en_US: The unique identifier of the memory to get history for.
       zh_Hans: 要获取历史记录的记忆的唯一标识符。
-      pt_BR: O identificador único da memória para obter o histórico.
     llm_description: The unique identifier of the memory to get history for.
     form: llm
 extra:

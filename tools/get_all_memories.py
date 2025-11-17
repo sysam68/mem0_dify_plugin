@@ -1,10 +1,9 @@
-from collections.abc import Generator
 import asyncio
+from collections.abc import Generator
 from typing import Any
 
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
-
 from utils.config_builder import is_async_mode
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
@@ -26,7 +25,8 @@ class GetAllMemoriesTool(Tool):
         # Validate at least one identifier
         if not any([params.get("user_id"), params.get("agent_id"), params.get("run_id")]):
             error_message = "At least one of user_id, agent_id, or run_id must be provided"
-            yield self.create_json_message({"status": "error", "error": error_message})
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Error: {error_message}")
             return
 
@@ -48,40 +48,32 @@ class GetAllMemoriesTool(Tool):
                 memories.append({
                     "id": r.get("id"),
                     "memory": r.get("memory"),
-                    "hash": r.get("hash", ""),
                     "metadata": r.get("metadata", {}),
                     "created_at": r.get("created_at"),
                     "updated_at": r.get("updated_at", ""),
-                    "user_id": r.get("user_id"),
-                    "agent_id": r.get("agent_id"),
-                    "run_id": r.get("run_id"),
                 })
 
             yield self.create_json_message({
-                "status": "success",
-                "count": len(memories),
-                "memories": memories,
+                "status": "SUCCESS",
+                "messages": params,
+                "results": memories,
             })
 
             # Text output
             text_response = f"Found {len(memories)} memories\n\n"
             if memories:
                 for idx, r in enumerate(memories, 1):
-                    text_response += f"{idx}. {r.get('memory', '')}\n"
-                    text_response += f"   ID: {r.get('id', '')}\n"
-                    if r.get("user_id"):
-                        text_response += f"   User ID: {r['user_id']}\n"
-                    if r.get("agent_id"):
-                        text_response += f"   Agent ID: {r['agent_id']}\n"
-                    if r.get("metadata"):
-                        text_response += f"   Metadata: {r['metadata']}\n"
-                    text_response += f"   Created: {r.get('created_at', '')}\n\n"
-            else:
-                text_response += "No memories found."
-
+                    text_response += (
+                        f"{idx}. ID: {r.get('id', '')}\n"
+                        f"   Memory: {r.get('memory', '')}\n"
+                        f"   Metadata: {r.get('metadata', {})}\n"
+                        f"   Created: {r.get('created_at', '')}\n"
+                        f"   Updated: {r.get('updated_at', '')}\n\n"
+                    )
             yield self.create_text_message(text_response)
 
-        except Exception as e:
-            error_message = f"Error: {str(e)}"
-            yield self.create_json_message({"status": "error", "error": error_message})
+        except (ValueError, RuntimeError, TypeError) as e:
+            error_message = f"Error: {e!s}"
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to get memories: {error_message}")

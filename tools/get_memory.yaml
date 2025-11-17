@@ -1,15 +1,13 @@
 identity:
-  name: get_mem0ai_memory
+  name: get_memory
   author: beersoccer
   label:
     en_US: Get Memory
     zh_Hans: 获取记忆
-    pt_BR: Obter Memória
 description:
   human:
     en_US: Get a specific memory by its ID
     zh_Hans: 通过ID获取特定记忆
-    pt_BR: Obter uma memória específica por seu ID
   llm: Get a specific memory by its ID
 parameters:
   - name: memory_id
@@ -18,11 +16,9 @@ parameters:
     label:
       en_US: Memory ID
       zh_Hans: 记忆ID
-      pt_BR: ID da Memória
     human_description:
       en_US: The unique identifier of the memory to retrieve.
       zh_Hans: 要检索的记忆的唯一标识符。
-      pt_BR: O identificador único da memória a ser recuperada.
     llm_description: The unique identifier of the memory to retrieve.
     form: llm
 extra:

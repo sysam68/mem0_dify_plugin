@@ -11,7 +11,7 @@ from utils.constants import ADD_ACCEPT_RESULT, ADD_SKIP_RESULT
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
 
-class AddMem0Tool(Tool):
+class AddMemoryTool(Tool):
     """Tool to add user/assistant messages as a memory."""
 
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -19,7 +19,8 @@ class AddMem0Tool(Tool):
         user_id = tool_parameters.get("user_id")
         if not user_id:
             error_message = "user_id is required"
-            yield self.create_json_message({"status": "error", "error": error_message})
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to add memory: {error_message}")
             return
 
@@ -62,7 +63,7 @@ class AddMem0Tool(Tool):
                 )
             ):
                 yield self.create_json_message({
-                    "status": "skipped",
+                    "status": "SUCCESS",
                     "messages": messages,
                     **ADD_SKIP_RESULT,
                 })
@@ -77,16 +78,16 @@ class AddMem0Tool(Tool):
                 asyncio.run_coroutine_threadsafe(client.add(payload), loop)
 
                 yield self.create_json_message({
-                    "status": "queued",
+                    "status": "SUCCESS",
                     "messages": messages,
                     **ADD_ACCEPT_RESULT,
                 })
-                yield self.create_text_message("Asynchronous memory addition has been queued.")
+                yield self.create_text_message("Asynchronous memory addition has been accepted.")
             else:
                 client = LocalClient(self.runtime.credentials)
                 result = client.add(payload)
                 yield self.create_json_message({
-                    "status": "ok",
+                    "status": "SUCCESS",
                     "messages": messages,
                     "results": result,
                 })
@@ -94,5 +95,6 @@ class AddMem0Tool(Tool):
 
         except (ValueError, RuntimeError, TypeError) as e:
             error_message = f"Error: {e!s}"
-            yield self.create_json_message({"status": "error", "error": error_message})
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to add memory: {error_message}")

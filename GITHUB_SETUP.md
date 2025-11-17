@@ -132,7 +132,7 @@ dify-plugin-mem0/
 │   ├── get_memory_history.yaml
 │   └── get_memory_history.py
 └── _assets/
-    ├── mem0.png           # 图标
+    ├── mem0_plugin.png           # 图标
     └── ...                # 其他资源
 ```
 
