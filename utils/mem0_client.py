@@ -153,36 +153,44 @@ class LocalClient:
         return self.memory.add(messages, **kwargs)
 
     def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        """Get all memories based on filters or user/agent/run identifiers.
+        """Get all memories based on user/agent/run identifiers with optional filters.
 
         Args:
             params (dict): Parameters including:
                 - user_id (str, optional): User ID to filter by.
                 - agent_id (str, optional): Agent ID to filter by.
                 - run_id (str, optional): Run ID to filter by.
-                - limit (int, optional): Maximum number of results.
+                - limit (int, optional): Maximum number of results to return.
                 - filters (dict, optional): Advanced metadata filters.
 
         Returns:
             list[dict]: List of memory objects.
 
         """
+        # Build kwargs with all provided parameters
+        kwargs: dict[str, Any] = {}
+
+        # Add entity IDs if provided
+        if params.get("user_id"):
+            kwargs["user_id"] = params.get("user_id")
+        if params.get("agent_id"):
+            kwargs["agent_id"] = params.get("agent_id")
+        if params.get("run_id"):
+            kwargs["run_id"] = params.get("run_id")
+
+        # Add optional parameters
+        limit = params.get("limit")
+        if limit is not None:
+            with contextlib.suppress(TypeError, ValueError):
+                kwargs["limit"] = int(limit)
+
         filters = params.get("filters")
-        # In local mode, ignore version; support filters directly when provided
         if isinstance(filters, dict):
-            # Prefer calling with filters only if supported by mem0
-            try:
-                results = self.memory.get_all(filters=filters)
-            except TypeError:
-                # Fallback: if filters signature unsupported, return empty list
-                results = []
-        else:
-            results = self.memory.get_all(
-                user_id=params.get("user_id"),
-                agent_id=params.get("agent_id"),
-                run_id=params.get("run_id"),
-            )
-        return results or []
+            kwargs["filters"] = filters
+
+        # Mem0's get_all always returns {"results": [...]} format
+        result = self.memory.get_all(**kwargs)
+        return result.get("results", []) if isinstance(result, dict) else []
 
     def get(self, memory_id: str) -> dict[str, Any]:
         """Get a single memory by ID.
@@ -487,14 +495,14 @@ class AsyncLocalClient:
             return await self.memory.add(messages, **kwargs)
 
     async def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
-        """Get all memories based on filters or user/agent/run identifiers.
+        """Get all memories based on user/agent/run identifiers with optional filters.
 
         Args:
             params (dict): Parameters including:
                 - user_id (str, optional): User ID to filter by.
                 - agent_id (str, optional): Agent ID to filter by.
                 - run_id (str, optional): Run ID to filter by.
-                - limit (int, optional): Maximum number of results.
+                - limit (int, optional): Maximum number of results to return.
                 - filters (dict, optional): Advanced metadata filters.
 
         Returns:
@@ -502,21 +510,32 @@ class AsyncLocalClient:
 
         """
         await self.create()
+
+        # Build kwargs with all provided parameters
+        kwargs: dict[str, Any] = {}
+
+        # Add entity IDs if provided
+        if params.get("user_id"):
+            kwargs["user_id"] = params.get("user_id")
+        if params.get("agent_id"):
+            kwargs["agent_id"] = params.get("agent_id")
+        if params.get("run_id"):
+            kwargs["run_id"] = params.get("run_id")
+
+        # Add optional parameters
+        limit = params.get("limit")
+        if limit is not None:
+            with contextlib.suppress(TypeError, ValueError):
+                kwargs["limit"] = int(limit)
+
         filters = params.get("filters")
         if isinstance(filters, dict):
-            try:
-                async with self._semaphore:
-                    results = await self.memory.get_all(filters=filters)
-            except TypeError:
-                results = []
-        else:
-            async with self._semaphore:
-                results = await self.memory.get_all(
-                    user_id=params.get("user_id"),
-                    agent_id=params.get("agent_id"),
-                    run_id=params.get("run_id"),
-                )
-        return results or []
+            kwargs["filters"] = filters
+
+        # Mem0's get_all always returns {"results": [...]} format
+        async with self._semaphore:
+            result = await self.memory.get_all(**kwargs)
+        return result.get("results", []) if isinstance(result, dict) else []
 
     async def get(self, memory_id: str) -> dict[str, Any]:
         """Get a single memory by ID.

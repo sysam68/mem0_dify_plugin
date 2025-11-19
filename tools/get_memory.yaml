@@ -8,7 +8,7 @@ description:
   human:
     en_US: Get a specific memory by its ID
     zh_Hans: 通过ID获取特定记忆
-  llm: Get a specific memory by its ID
+  llm: Use this tool to retrieve and display the full details of a specific memory from Mem0 by its ID.
 parameters:
   - name: memory_id
     type: string

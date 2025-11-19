@@ -1,4 +1,5 @@
 import asyncio
+import json
 from collections.abc import Generator
 from typing import Any
 
@@ -10,25 +11,35 @@ from utils.mem0_client import AsyncLocalClient, LocalClient
 
 class GetAllMemoriesTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
+        # Validate required user_id
+        user_id = tool_parameters.get("user_id")
+        if not user_id:
+            error_message = "user_id is required"
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
+            yield self.create_text_message(f"Error: {error_message}")
+            return
+
         # Build params
-        params: dict[str, Any] = {}
-        if tool_parameters.get("user_id"):
-            params["user_id"] = tool_parameters["user_id"]
+        params: dict[str, Any] = {"user_id": user_id}
         if tool_parameters.get("agent_id"):
             params["agent_id"] = tool_parameters["agent_id"]
         if tool_parameters.get("run_id"):
             params["run_id"] = tool_parameters["run_id"]
         if tool_parameters.get("limit"):
-            # accepted but currently ignored by client; kept for backward compatibility
             params["limit"] = tool_parameters.get("limit")
 
-        # Validate at least one identifier
-        if not any([params.get("user_id"), params.get("agent_id"), params.get("run_id")]):
-            error_message = "At least one of user_id, agent_id, or run_id must be provided"
-            yield self.create_json_message(
-                {"status": "ERROR", "messages": error_message, "results": []})
-            yield self.create_text_message(f"Error: {error_message}")
-            return
+        # Parse filters if provided (JSON string)
+        filters_str = tool_parameters.get("filters")
+        if filters_str:
+            try:
+                params["filters"] = json.loads(filters_str)
+            except json.JSONDecodeError:
+                error_message = "Invalid JSON format for filters"
+                yield self.create_json_message(
+                    {"status": "ERROR", "messages": error_message, "results": []})
+                yield self.create_text_message(f"Error: {error_message}")
+                return
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)

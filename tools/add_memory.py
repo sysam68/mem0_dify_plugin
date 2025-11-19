@@ -37,7 +37,8 @@ class AddMemoryTool(Tool):
         messages = []
         if user_text:
             messages.append({"role": "user", "content": user_text})
-        if assistant_text:
+        # Only add assistant message if it's different from user message
+        if assistant_text and assistant_text != user_text:
             messages.append({"role": "assistant", "content": assistant_text})
 
         # Build payload (only include optional fields if provided)
