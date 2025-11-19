@@ -8,7 +8,7 @@ description:
   human:
     en_US: Get the change history of a specific memory
     zh_Hans: 获取特定记忆的变更历史
-  llm: Get the change history of a specific memory
+  llm: Use this tool to retrieve and display the complete change history of a specific memory from Mem0 by its ID.
 parameters:
   - name: memory_id
     type: string

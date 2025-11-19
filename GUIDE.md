@@ -153,6 +153,15 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
 - When `async_mode=false`:
   - All operations block until completion
 
+### Important operational notes
+
+#### Delete All Memories Operation
+> **Note**: When using the `delete_all_memories` tool to delete memories in batch, Mem0 will automatically reset the vector index to optimize performance and reclaim space. You may see a log message like `WARNING: Resetting index mem0...` during this operation. This is a **normal and expected behavior** — the warning indicates that the vector store table is being dropped and recreated to ensure optimal query performance after bulk deletion. No action is needed from your side.
+
+#### Vector Store Connection
+- **Debug Mode** (running `python -m main` locally): Use `localhost:<port>` to connect to pgvector
+- **Production Mode** (running in Docker): Use Docker container name (e.g., `docker-pgvector-1`) and internal port (e.g., `5432`)
+
 ## User Privacy Policy
 
 Please fill in the privacy policy of the plugin if you want to make it published on the Marketplace, refer to [PRIVACY.md](PRIVACY.md) for more details.

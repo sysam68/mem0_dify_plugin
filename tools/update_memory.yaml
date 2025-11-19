@@ -8,7 +8,7 @@ description:
   human:
     en_US: Modify an existing memory by updating its content
     zh_Hans: 通过更新内容来修改现有记忆
-  llm: Modify an existing memory by updating its content
+  llm: Use this tool to modify and update the content of an existing memory in Mem0 by its ID.
 parameters:
   - name: memory_id
     type: string

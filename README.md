@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.0.9
+# Mem0 Dify Plugin v0.1.0
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -13,7 +13,7 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 ## 🌟 Features
 
 ### Complete Memory Management (8 Tools)
-- ✅ **Add Memory** - Create memories with metadata and multi-entity support
+- ✅ **Add Memory** - Intelligently add, update, or delete memories based on user interactions
 - ✅ **Search Memory** - Search with advanced filters (AND/OR logic) and top_k limiting
 - ✅ **Get All Memories** - List memories with pagination
 - ✅ **Get Memory** - Fetch specific memory details
@@ -29,20 +29,13 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 📊 **Metadata System** - Custom JSON metadata for rich context
 - 🔍 **Filters** - JSON filters supported by Mem0 local mode
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
- - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
+- ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.0.9)
-- **Unified Return Format**: All tools return consistent JSON structure `{"status": "SUCCESS/ERROR", "messages": {...}, "results": {...}}`
-- **Enhanced Async Operations**: Update, Delete, and Delete_All are now non-blocking in async mode, returning ACCEPT messages
-- **Standardized Fields**:
-  - Search/Get/Get_All: id, memory, metadata, created_at, updated_at
-  - History: memory_id, old_memory, new_memory, event, created_at, updated_at, is_deleted
-- **Extended Constants**: Added `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, `DELETE_ALL_ACCEPT_RESULT`
-- **Complete Documentation**: All methods in mem0_client.py now have comprehensive docstrings
-- **Async Mode Behavior**:
-  - Write operations (Add/Update/Delete/Delete_All): non-blocking, return immediately with ACCEPT status
-  - Read operations (Search/Get/Get_All/History): always wait for results
-  - Sync mode: all operations block until completion
+### What's New (v0.1.0)
+- **Smart Memory Management**: `add_memory` tool description updated to reflect its ability to intelligently add, update, or delete memories based on context.
+- **Robust Error Handling**: Enhanced `get_memory`, `update_memory`, and `delete_memory` to gracefully handle non-existent memories and race conditions with clear error messages instead of crashes.
+- **Bug Fixes**: Fixed `get_all_memories` returning empty results by correctly parsing Mem0's dictionary response format.
+- **Documentation**: Added important notes about `delete_all` index reset warnings and vector store connection details.
 
 ---
 
@@ -219,6 +212,20 @@ Example Vector DB JSON (pgvector):
   }
 }
 ```
+
+---
+
+## 📌 Important Notes
+
+### Delete All Memories Operation
+
+> **Note**: When using the `delete_all_memories` tool to delete memories in batch, Mem0 will automatically reset the vector index to optimize performance and reclaim space. You may see a log message like `WARNING: Resetting index mem0...` during this operation. This is a **normal and expected behavior** — the warning indicates that the vector store table is being dropped and recreated to ensure optimal query performance after bulk deletion. No action is needed from your side.
+
+### Async Mode Behavior
+
+- **Write Operations** (Add/Update/Delete/Delete_All): In async mode, these operations return immediately with an ACCEPT status, and the actual operation is performed in the background
+- **Read Operations** (Search/Get/Get_All/History): These always wait for and return the actual results, regardless of async mode setting
+- **Sync Mode**: All operations block until completion
 
 ---
 

@@ -8,7 +8,7 @@ description:
   human:
     en_US: Delete a specific memory by its ID from Mem0
     zh_Hans: 通过ID从 Mem0 删除特定记忆
-  llm: Delete a specific memory by its ID from Mem0
+  llm: Use this tool to permanently delete a specific memory from Mem0 by its ID. This action cannot be undone.
 parameters:
   - name: memory_id
     type: string

@@ -22,6 +22,14 @@ class GetMemoryTool(Tool):
                 client = LocalClient(self.runtime.credentials)
                 result = client.get(memory_id)
 
+            # Check if memory exists
+            if not result or not isinstance(result, dict):
+                error_message = f"Memory not found: {memory_id}"
+                yield self.create_json_message(
+                    {"status": "ERROR", "messages": error_message, "results": {}})
+                yield self.create_text_message(f"Error: {error_message}")
+                return
+
             yield self.create_json_message({
                 "status": "SUCCESS",
                 "messages": {"memory_id": memory_id},
@@ -48,5 +56,5 @@ class GetMemoryTool(Tool):
         except (ValueError, RuntimeError, TypeError) as e:
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
-                {"status": "ERROR", "messages": error_message, "results": []})
+                {"status": "ERROR", "messages": error_message, "results": {}})
             yield self.create_text_message(f"Failed to get memory: {error_message}")

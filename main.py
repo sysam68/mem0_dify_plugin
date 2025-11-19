@@ -7,11 +7,10 @@ import signal
 import sys
 
 # Disable telemetry/analytics to avoid PostHog timeouts in restricted networks
+# MEM0_TELEMETRY is the official Mem0 env var (checked in mem0/memory/telemetry.py)
+os.environ.setdefault("MEM0_TELEMETRY", "False")
 os.environ.setdefault("POSTHOG_DISABLED", "1")
 os.environ.setdefault("DO_NOT_TRACK", "1")
-# Best-effort vendor-specific opt-outs (safe no-ops if unsupported)
-os.environ.setdefault("MEM0_DISABLE_TELEMETRY", "1")
-os.environ.setdefault("DIFY_PLUGIN_DISABLE_TELEMETRY", "1")
 
 from dify_plugin import DifyPluginEnv, Plugin
 from utils.constants import MAX_REQUEST_TIMEOUT

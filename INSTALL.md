@@ -80,7 +80,7 @@ dify plugin install mem0-0.0.9.difypkg
 安装完成后，你应该能看到以下 8 个工具：
 
 ### 核心功能工具
-1. ✅ **Add Memory** - 添加记忆（异步入队，立即返回）
+1. ✅ **Add Memory** - 智能管理记忆（添加/更新/删除，异步入队）
 2. ✅ **Search Memory** - 搜索记忆（本地模式过滤器与 top_k）
 3. ✅ **Get All Memories** - 获取所有记忆
 4. ✅ **Get Memory** - 获取单条记忆详情

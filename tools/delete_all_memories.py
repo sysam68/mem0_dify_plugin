@@ -11,22 +11,21 @@ from utils.mem0_client import AsyncLocalClient, LocalClient
 
 class DeleteAllMemoriesTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
-        # Build params
-        params: dict[str, Any] = {}
-        if tool_parameters.get("user_id"):
-            params["user_id"] = tool_parameters["user_id"]
-        if tool_parameters.get("agent_id"):
-            params["agent_id"] = tool_parameters["agent_id"]
-        if tool_parameters.get("run_id"):
-            params["run_id"] = tool_parameters["run_id"]
-
-        # Validate at least one identifier
-        if not any([params.get("user_id"), params.get("agent_id"), params.get("run_id")]):
-            error_message = "At least one of user_id, agent_id, or run_id must be provided"
+        # Validate required user_id
+        user_id = tool_parameters.get("user_id")
+        if not user_id:
+            error_message = "user_id is required"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Error: {error_message}")
             return
+
+        # Build params
+        params: dict[str, Any] = {"user_id": user_id}
+        if tool_parameters.get("agent_id"):
+            params["agent_id"] = tool_parameters["agent_id"]
+        if tool_parameters.get("run_id"):
+            params["run_id"] = tool_parameters["run_id"]
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)

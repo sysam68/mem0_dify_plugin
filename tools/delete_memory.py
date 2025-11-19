@@ -15,7 +15,37 @@ class DeleteMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
-            if async_mode:
+
+            # In sync mode, check if memory exists before deleting
+            if not async_mode:
+                client = LocalClient(self.runtime.credentials)
+                # Check if memory exists
+                existing = client.get(memory_id)
+                if not existing or not isinstance(existing, dict):
+                    error_message = f"Memory not found: {memory_id}"
+                    yield self.create_json_message(
+                        {"status": "ERROR", "messages": error_message, "results": {}})
+                    yield self.create_text_message(f"Error: {error_message}")
+                    return
+
+                # Wrap delete call in try-except to catch Mem0 internal errors
+                try:
+                    result = client.delete(memory_id)
+                except AttributeError:
+                    # Mem0 internal error: memory was deleted between get() and delete()
+                    error_message = f"Memory not found or already deleted: {memory_id}"
+                    yield self.create_json_message(
+                        {"status": "ERROR", "messages": error_message, "results": {}})
+                    yield self.create_text_message(f"Error: {error_message}")
+                    return
+                
+                yield self.create_json_message({
+                    "status": "SUCCESS",
+                    "messages": {"memory_id": memory_id},
+                    "results": result,
+                })
+                yield self.create_text_message(f"Memory {memory_id} deleted successfully!")
+            else:
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit delete to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
@@ -27,17 +57,8 @@ class DeleteMemoryTool(Tool):
                     **DELETE_ACCEPT_RESULT,
                 })
                 yield self.create_text_message("Asynchronous memory deletion has been accepted.")
-            else:
-                client = LocalClient(self.runtime.credentials)
-                result = client.delete(memory_id)
-                yield self.create_json_message({
-                    "status": "SUCCESS",
-                    "messages": {"memory_id": memory_id},
-                    "results": result,
-                })
-                yield self.create_text_message(f"Memory {memory_id} deleted successfully!")
 
-        except (ValueError, RuntimeError, TypeError) as e:
+        except (ValueError, RuntimeError, TypeError, AttributeError) as e:
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})

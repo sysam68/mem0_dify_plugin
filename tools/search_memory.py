@@ -18,12 +18,19 @@ class SearchMemoryTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
         # Validate required fields
         query = tool_parameters.get("query", "")
-        user_id = tool_parameters.get("user_id")
         if not query:
-            yield self.create_text_message("Failed to search memory: query is required")
+            error_message = "query is required"
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
+            yield self.create_text_message(f"Failed to search memory: {error_message}")
             return
+
+        user_id = tool_parameters.get("user_id")
         if not user_id:
-            yield self.create_text_message("Failed to search memory: user_id is required")
+            error_message = "user_id is required"
+            yield self.create_json_message(
+                {"status": "ERROR", "messages": error_message, "results": []})
+            yield self.create_text_message(f"Failed to search memory: {error_message}")
             return
 
         # Build payload

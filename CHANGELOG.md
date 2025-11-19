@@ -1,5 +1,32 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.0 (2025-11-19)
+
+### 🎯 Smart Memory Management & Robustness
+
+This release transforms the `add_memory` tool into a smart memory manager and significantly improves the plugin's stability by handling edge cases and race conditions.
+
+#### Highlights
+- **Smart Memory Management**: The `add_memory` tool description has been updated to reflect its true capability. It leverages Mem0's intelligence to automatically decide whether to add, update, or delete memories based on user interaction context.
+- **Robust Error Handling**: Operations on non-existent memories (Get/Update/Delete) now return clear, friendly error messages instead of crashing with internal Python exceptions.
+- **Race Condition Protection**: Implemented a multi-layer defense mechanism for `update` and `delete` operations to handle concurrent modifications safely.
+
+#### 🔧 Technical Details
+- **Tool Updates**:
+  - `add_memory`: Updated YAML description to emphasize intelligent memory management (Add/Update/Delete).
+  - `get_all_memories`: Fixed a bug where results were empty due to incorrect parsing of Mem0's dictionary response format.
+  - `get_memory`: Added checks for `None` results to prevent `AttributeError`.
+  - `update_memory` / `delete_memory`: Added pre-checks and internal `try-except` blocks to catch `AttributeError` caused by Mem0's internal race conditions when operating on deleted memories.
+- **Documentation**:
+  - Added "Important Notes" section in README/GUIDE about `delete_all` triggering "Resetting index" warnings (normal behavior).
+  - Clarified vector store connection settings for Debug vs Production modes.
+
+#### ⚠️ Migration Notes
+- No breaking changes in API.
+- `add_memory` tool description is updated, but the tool name and label remain "Add Memory".
+
+---
+
 ## Version 0.0.9 (2025-11-17)
 
 ### 🎯 Unified Return Format & Enhanced Async Operations
