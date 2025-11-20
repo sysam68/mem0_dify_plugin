@@ -42,6 +42,13 @@ DELETE_ALL_ACCEPT_RESULT: dict[str, object] = {
 # The maximum timeout (in seconds) for a single request, to avoid long waits or hanging connections.
 MAX_REQUEST_TIMEOUT: int = 120
 
+# Operation timeouts (in seconds) for individual Mem0 operations
+# These should be less than MAX_REQUEST_TIMEOUT to allow for error handling
+SEARCH_OPERATION_TIMEOUT: int = 60
+GET_OPERATION_TIMEOUT: int = 30
+GET_ALL_OPERATION_TIMEOUT: int = 60
+HISTORY_OPERATION_TIMEOUT: int = 30
+
 # Concurrency controls
 # Maximum concurrent add() operations per process to avoid exhausting DB/vector store pools
 MAX_CONCURRENT_MEM_ADDS: int = 5

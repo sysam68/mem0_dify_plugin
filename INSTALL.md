@@ -1,11 +1,11 @@
-# Mem0 Dify Plugin v0.0.9 - 安装指南
+# Mem0 Dify Plugin v0.1.1 - 安装指南
 
 ## 📦 安装步骤
 
 ### 1. 获取插件包
 
 插件已打包为 `.difypkg` 文件（版本号以实际发布为准）：
-- **文件名**: `mem0-0.0.9.difypkg`
+- **文件名**: `mem0-0.1.1.difypkg`
 - **大小**: ~600KB
 - **位置**: Releases 页面
 
@@ -23,7 +23,7 @@
 
 3. **上传插件**
    - 点击 **"Upload Plugin"** 或 **"安装插件"** 按钮
-   - 选择 `mem0-0.0.9.difypkg` 文件
+   - 选择 `mem0-0.1.1.difypkg` 文件
    - 等待上传和安装完成
 
 4. **配置本地模式凭证**
@@ -37,7 +37,7 @@
 
 ```bash
 # 如果你有 dify-cli 工具
-dify plugin install mem0-0.0.9.difypkg
+dify plugin install mem0-0.1.1.difypkg
 ```
 
 ---
@@ -178,7 +178,7 @@ cd /Users/howsun/Warp/dify/mem0-plugin-update
    - 或使用 CLI：`dify plugin uninstall mem0`
 
 3. **安装新版本**
-   - 按照上述步骤安装 v0.0.8
+   - 按照上述步骤安装 v0.1.1
    - 重新配置本地 JSON 凭证（LLM/Embedder/Vector DB）
 
 4. **验证功能**
@@ -235,12 +235,26 @@ cd /Users/howsun/Warp/dify/mem0-plugin-update
    - 插件内部使用单进程级后台事件循环与信号量限制并发
    - 进程退出时会优雅停止后台 loop
 
-4. **异步模式（v0.0.9+）**
+4. **异步模式（v0.1.1+）**
    - `async_mode` 默认为 true（异步模式）
    - 异步模式下：
      - 写操作（Add/Update/Delete/Delete_All）非阻塞，立即返回 ACCEPT 状态
-     - 读操作（Search/Get/Get_All/History）等待结果返回
-   - 同步模式下：所有操作阻塞直至完成
+     - 读操作（Search/Get/Get_All/History）等待结果返回，并具有超时保护机制
+     - 超时设置：Search/Get_All 为 60 秒，Get/History 为 30 秒
+     - 超时或错误时，工具会记录日志并返回默认/空结果，确保工作流继续执行
+   - 同步模式下：
+     - 所有操作阻塞直至完成
+     - **注意**：同步模式没有超时保护（阻塞调用）。如果需要超时保护，请使用 `async_mode=true`
+
+5. **超时与服务降级（v0.1.1+）**
+   - **异步模式**：所有异步读操作都配备了超时保护机制，防止工具无限期挂起
+   - **同步模式**：没有超时保护（阻塞调用）。如果需要超时保护，请使用 `async_mode=true`
+   - 当操作超时或遇到错误时：
+     - 事件会被记录到日志中，包含完整的异常详情
+     - 后台任务会被取消，防止资源泄漏（仅异步模式）
+     - 返回默认/空结果（Search/Get_All/History 返回空列表 `[]`，Get 返回 `None`）
+     - Dify 工作流会继续执行，不会中断
+   - **统一异常处理**：同步和异步模式都实现了统一的异常处理机制，确保工作流在工具失败时仍能继续执行
 
 ---
 

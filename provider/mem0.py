@@ -6,12 +6,15 @@ with Mem0's memory capabilities in a self-hosted/local setup.
 """
 
 import asyncio
+import logging
 from typing import Any
 
 from dify_plugin import ToolProvider
 from dify_plugin.errors.tool import ToolProviderCredentialValidationError
 from utils.config_builder import is_async_mode
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
+logger = logging.getLogger(__name__)
 
 
 class Mem0Provider(ToolProvider):
@@ -22,8 +25,11 @@ class Mem0Provider(ToolProvider):
     """
 
     def _validate_credentials(self, credentials: dict[str, Any]) -> None:
+        logger.info("Validating Mem0 provider credentials")
         try:
             async_mode = is_async_mode(credentials)
+            mode = "async" if async_mode else "sync"
+            logger.info("Validating credentials in %s mode", mode)
             if async_mode:
                 client = AsyncLocalClient(credentials)
                 loop = AsyncLocalClient.ensure_bg_loop()
@@ -35,5 +41,7 @@ class Mem0Provider(ToolProvider):
             else:
                 client = LocalClient(credentials)
                 _ = client.search({"query": "test", "user_id": "validation_test"})
+            logger.info("Credentials validated successfully")
         except Exception as e:
+            logger.exception("Credential validation failed")
             raise ToolProviderCredentialValidationError(str(e)) from e

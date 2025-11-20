@@ -14,15 +14,26 @@ from __future__ import annotations
 
 import ast
 import json
+import logging
 from typing import Any
 from urllib.parse import quote_plus
 
+logger = logging.getLogger(__name__)
 
-class ConfigError(ValueError):
-    pass
+
+def _raise_config_error(msg: str) -> None:
+    """Raise a ValueError for configuration errors with logging.
+
+    Args:
+        msg: Error message to log and raise.
+
+    """
+    logger.error(msg)
+    raise ValueError(msg)
 
 
 def _parse_json_block(raw: str | dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
+
     if raw is None:
         return None
     # Accept already-parsed dicts from upstream runtimes
@@ -51,19 +62,21 @@ def _parse_json_block(raw: str | dict[str, Any] | None, field_name: str) -> dict
                 candidate = ast.literal_eval(text)
                 if not isinstance(candidate, dict):
                     msg = f"{field_name} must be a JSON object"
-                    raise ConfigError(msg)
+                    _raise_config_error(msg)
                 data = candidate
-            except Exception as e:
-                msg = f"{field_name} is not valid JSON: {e}"
-                raise ConfigError(msg) from e
+            except Exception:
+                msg = f"{field_name} is not valid JSON"
+                logger.exception("Failed to parse %s", field_name)
+                _raise_config_error(msg)
     if not isinstance(data, dict):
         msg = f"{field_name} must be a JSON object"
-        raise ConfigError(msg)
+        _raise_config_error(msg)
     provider = data.get("provider")
     cfg = data.get("config")
     if not provider or not isinstance(cfg, dict):
         msg = f"{field_name} must include 'provider' and 'config' object"
-        raise ConfigError(msg)
+        _raise_config_error(msg)
+    logger.debug("Successfully parsed %s with provider: %s", field_name, provider)
     return data
 
 
@@ -110,22 +123,24 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
     Required: local_llm_json, local_embedder_json, local_vector_db_json
     Optional: local_reranker_json, local_graph_db_json
     """
+    logger.info("Building Mem0 local configuration from credentials")
     llm = _parse_json_block(credentials.get("local_llm_json"), "local_llm_json")
     embedder = _parse_json_block(credentials.get("local_embedder_json"), "local_embedder_json")
     vector_store = _parse_json_block(credentials.get("local_vector_db_json"), "local_vector_db_json")
 
     if llm is None:
         msg = "LLM configuration (local_llm_json) is required in Local mode"
-        raise ConfigError(msg)
+        _raise_config_error(msg)
     if embedder is None:
         msg = "Embedder configuration (local_embedder_json) is required in Local mode"
-        raise ConfigError(msg)
+        _raise_config_error(msg)
     if vector_store is None:
         msg = "Vector Database configuration (local_vector_db_json) is required in Local mode"
-        raise ConfigError(msg)
+        _raise_config_error(msg)
 
     # Normalize pgvector config shape if necessary
     if (vector_store.get("provider") == "pgvector" and isinstance(vector_store.get("config"), dict)):
+        logger.debug("Normalizing pgvector configuration")
         vector_store["config"] = _normalize_pgvector_config(vector_store["config"])  # type: ignore[index]
 
     reranker = _parse_json_block(credentials.get("local_reranker_json"), "local_reranker_json")
@@ -138,9 +153,12 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
     }
     if reranker:
         config["reranker"] = reranker
+        logger.debug("Reranker configuration included")
     if graph_store:
         config["graph_store"] = graph_store
+        logger.debug("Graph store configuration included")
 
+    logger.info("Mem0 local configuration built successfully")
     return config
 
 

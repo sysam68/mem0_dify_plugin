@@ -1,5 +1,59 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.1 (2025-11-20)
+
+### 🎯 Production Stability & Timeout Protection
+
+This release addresses critical production issues where tools would hang indefinitely, implementing comprehensive timeout mechanisms and service degradation strategies to ensure reliable operation in production environments.
+
+#### Highlights
+- **Timeout Protection**: Added timeout mechanisms for all async read operations (Search/Get/Get_All/History) to prevent indefinite hanging
+  - Search Memory: 60 seconds timeout
+  - Get All Memories: 60 seconds timeout
+  - Get Memory: 30 seconds timeout
+  - Get Memory History: 30 seconds timeout
+- **Service Degradation**: When operations timeout or encounter errors, the plugin gracefully degrades by:
+  - Logging the event with full exception details
+  - Cancelling background tasks to prevent resource leaks
+  - Returning default/empty results (empty list `[]` for Search/Get_All/History, `None` for Get)
+  - Ensuring Dify workflow continues execution without interruption
+- **Robust Error Handling**: Enhanced exception handling to catch all error types (network errors, connection failures, SSL errors, etc.), not just specific exceptions
+- **Resource Management**: Improved background task cancellation on timeout using `future.cancel()` to prevent hanging tasks and resource leaks
+
+#### 🔧 Technical Details
+- **Timeout Implementation**:
+  - Added timeout constants in `utils/constants.py`: `SEARCH_OPERATION_TIMEOUT`, `GET_OPERATION_TIMEOUT`, `GET_ALL_OPERATION_TIMEOUT`, `HISTORY_OPERATION_TIMEOUT`
+  - Applied timeouts to `future.result(timeout=...)` calls in all async read operations
+  - Used `concurrent.futures.TimeoutError` (aliased as `FuturesTimeoutError`) for correct exception handling
+  - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
+- **Service Degradation**:
+  - All tools now initialize result variables with default values before `try` blocks
+  - Timeout handlers call `future.cancel()` to prevent background tasks from hanging
+  - Exception handlers catch all `Exception` types, not just specific ones
+  - Tools return empty/default results on any error to ensure workflow continuity
+- **Unified Exception Handling**:
+  - Removed redundant outer `except FuturesTimeoutError` blocks (sync mode doesn't throw this exception)
+  - Unified exception handling pattern: async mode handles timeout and general exceptions, sync mode handles general exceptions only
+  - Both modes implement service degradation (return default/empty results) to ensure workflow continuity
+- **Code Quality**:
+  - Ensured `ensure_bg_loop()` guarantees a long-lived, reusable event loop
+  - Added comprehensive documentation for timeout and service degradation mechanisms
+  - Improved error logging with `logger.exception` for detailed stack traces
+  - Simplified code structure by removing duplicate exception handling blocks
+
+#### ⚠️ Migration Notes
+- No breaking changes in API or behavior
+- Tools now have timeout protection, which may cause operations to return empty results if they exceed timeout limits
+- Workflows should handle empty results gracefully (which they already should)
+- Production environments will benefit from improved stability and reliability
+
+#### 🐛 Bug Fixes
+- Fixed production issue where `Search memory` tool would hang indefinitely without proper termination
+- Fixed issue where tools would fail without proper error handling, causing workflow interruptions
+- Fixed resource leaks from hanging background tasks after timeouts
+
+---
+
 ## Version 0.1.0 (2025-11-19)
 
 ### 🎯 Smart Memory Management & Robustness

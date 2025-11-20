@@ -1,11 +1,16 @@
 import asyncio
+import logging
 from collections.abc import Generator
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
+from utils.constants import HISTORY_OPERATION_TIMEOUT
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
+logger = logging.getLogger(__name__)
 
 
 class GetMemoryHistoryTool(Tool):
@@ -14,13 +19,55 @@ class GetMemoryHistoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            logger.info("Getting memory history for %s, async_mode: %s", memory_id, async_mode)
+            # Initialize results with default value to ensure it's always defined
+            results: list[dict[str, Any]] = []
             if async_mode:
+                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed here.
+                # Resources are managed at the plugin lifecycle level via AsyncLocalClient.shutdown()
                 client = AsyncLocalClient(self.runtime.credentials)
+                # ensure_bg_loop() returns a long-lived, reusable event loop
                 loop = AsyncLocalClient.ensure_bg_loop()
-                results = asyncio.run_coroutine_threadsafe(client.history(memory_id), loop).result()
+                future = asyncio.run_coroutine_threadsafe(client.history(memory_id), loop)
+                try:
+                    results = future.result(timeout=HISTORY_OPERATION_TIMEOUT)
+                except FuturesTimeoutError:
+                    # Cancel the future to prevent the background task from hanging
+                    future.cancel()
+                    logger.exception(
+                        "History operation timed out after %d seconds for memory_id: %s",
+                        HISTORY_OPERATION_TIMEOUT,
+                        memory_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
+                except Exception as e:
+                    # Catch all other exceptions (network errors, connection errors, DNS failures,
+                    # SSL errors, authentication failures, etc.) to ensure service degradation
+                    # works for all failure scenarios, not just timeouts
+                    logger.exception(
+                        "History operation failed with error: %s (memory_id: %s)",
+                        type(e).__name__,
+                        memory_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
             else:
+                # Sync mode: no timeout protection (blocking call)
+                # If timeout protection is needed, use async_mode=true
                 client = LocalClient(self.runtime.credentials)
-                results = client.history(memory_id)
+                try:
+                    results = client.history(memory_id)
+                except Exception as e:
+                    # Catch all exceptions for sync mode to ensure service degradation
+                    logger.exception(
+                        "History operation failed with error: %s (memory_id: %s)",
+                        type(e).__name__,
+                        memory_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
+            logger.info("Retrieved %d history records for memory %s", len(results), memory_id)
 
             # JSON output
             history = []
@@ -59,6 +106,8 @@ class GetMemoryHistoryTool(Tool):
             yield self.create_text_message(text_response)
 
         except Exception as e:
+            # Catch all exceptions to ensure workflow continues
+            logger.exception("Error getting memory history for %s", memory_id)
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})

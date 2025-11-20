@@ -2,14 +2,18 @@
 
 import asyncio
 import json
+import logging
 from collections.abc import Generator
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
-from utils.constants import SEARCH_DEFAULT_TOP_K
+from utils.constants import SEARCH_DEFAULT_TOP_K, SEARCH_OPERATION_TIMEOUT
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
+logger = logging.getLogger(__name__)
 
 
 class SearchMemoryTool(Tool):
@@ -20,6 +24,7 @@ class SearchMemoryTool(Tool):
         query = tool_parameters.get("query", "")
         if not query:
             error_message = "query is required"
+            logger.error("Search memory failed: %s", error_message)
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to search memory: {error_message}")
@@ -28,6 +33,7 @@ class SearchMemoryTool(Tool):
         user_id = tool_parameters.get("user_id")
         if not user_id:
             error_message = "user_id is required"
+            logger.error("Search memory failed: %s", error_message)
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to search memory: {error_message}")
@@ -47,6 +53,7 @@ class SearchMemoryTool(Tool):
                 )
             except json.JSONDecodeError as json_err:
                 msg = f"Invalid JSON in filters: {json_err}"
+                logger.exception("Search memory failed: %s", msg)
                 yield self.create_json_message({"status": "ERROR", "messages": msg, "results": []})
                 yield self.create_text_message(f"Failed to search memory: {msg}")
                 return
@@ -70,14 +77,64 @@ class SearchMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            logger.info(
+                "Searching memories with query: %s..., user_id: %s, async_mode: %s",
+                query[:50],
+                user_id,
+                async_mode,
+            )
+            # Initialize results with default value to ensure it's always defined
+            results: list[dict[str, Any]] = []
             if async_mode:
+                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed here.
+                # Resources are managed at the plugin lifecycle level via AsyncLocalClient.shutdown()
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit to background loop and wait on future to avoid nested event loop issues
+                # ensure_bg_loop() returns a long-lived, reusable event loop
                 loop = AsyncLocalClient.ensure_bg_loop()
-                results = asyncio.run_coroutine_threadsafe(client.search(payload), loop).result()
+                future = asyncio.run_coroutine_threadsafe(client.search(payload), loop)
+                try:
+                    results = future.result(timeout=SEARCH_OPERATION_TIMEOUT)
+                except FuturesTimeoutError:
+                    # Cancel the future to prevent the background task from hanging
+                    future.cancel()
+                    logger.exception(
+                        "Search operation timed out after %d seconds for query: %s..., user_id: %s",
+                        SEARCH_OPERATION_TIMEOUT,
+                        query[:50],
+                        user_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
+                except Exception as e:
+                    # Catch all other exceptions (network errors, connection errors, DNS failures,
+                    # SSL errors, authentication failures, etc.) to ensure service degradation
+                    # works for all failure scenarios, not just timeouts
+                    logger.exception(
+                        "Search operation failed with error: %s (query: %s..., user_id: %s)",
+                        type(e).__name__,
+                        query[:50],
+                        user_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
             else:
+                # Sync mode: no timeout protection (blocking call)
+                # If timeout protection is needed, use async_mode=true
                 client = LocalClient(self.runtime.credentials)
-                results = client.search(payload)
+                try:
+                    results = client.search(payload)
+                except Exception as e:
+                    # Catch all exceptions for sync mode to ensure service degradation
+                    logger.exception(
+                        "Search operation failed with error: %s (query: %s..., user_id: %s)",
+                        type(e).__name__,
+                        query[:50],
+                        user_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
+            logger.info("Search completed, found %d results", len(results))
 
             # JSON output
             norm_results = []
@@ -120,11 +177,14 @@ class SearchMemoryTool(Tool):
 
         except json.JSONDecodeError as e:
             # Should not happen here, but guard anyway
+            logger.exception("Error parsing JSON during search")
             error_message = f"Error parsing JSON: {e}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to search memory: {error_message}")
-        except (ValueError, RuntimeError, TypeError) as e:
+        except Exception as e:
+            # Catch all exceptions to ensure workflow continues
+            logger.exception("Error during memory search")
             error_message = f"Error: {e}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
