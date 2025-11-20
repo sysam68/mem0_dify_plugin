@@ -25,15 +25,21 @@ This release addresses critical production issues where tools would hang indefin
   - Added timeout constants in `utils/constants.py`: `SEARCH_OPERATION_TIMEOUT`, `GET_OPERATION_TIMEOUT`, `GET_ALL_OPERATION_TIMEOUT`, `HISTORY_OPERATION_TIMEOUT`
   - Applied timeouts to `future.result(timeout=...)` calls in all async read operations
   - Used `concurrent.futures.TimeoutError` (aliased as `FuturesTimeoutError`) for correct exception handling
+  - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
 - **Service Degradation**:
   - All tools now initialize result variables with default values before `try` blocks
   - Timeout handlers call `future.cancel()` to prevent background tasks from hanging
   - Exception handlers catch all `Exception` types, not just specific ones
   - Tools return empty/default results on any error to ensure workflow continuity
+- **Unified Exception Handling**:
+  - Removed redundant outer `except FuturesTimeoutError` blocks (sync mode doesn't throw this exception)
+  - Unified exception handling pattern: async mode handles timeout and general exceptions, sync mode handles general exceptions only
+  - Both modes implement service degradation (return default/empty results) to ensure workflow continuity
 - **Code Quality**:
   - Ensured `ensure_bg_loop()` guarantees a long-lived, reusable event loop
   - Added comprehensive documentation for timeout and service degradation mechanisms
   - Improved error logging with `logger.exception` for detailed stack traces
+  - Simplified code structure by removing duplicate exception handling blocks
 
 #### ⚠️ Migration Notes
 - No breaking changes in API or behavior

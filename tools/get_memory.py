@@ -53,8 +53,20 @@ class GetMemoryTool(Tool):
                     # Service degradation: return None to trigger "not found" handling
                     result = None
             else:
+                # Sync mode: no timeout protection (blocking call)
+                # If timeout protection is needed, use async_mode=true
                 client = LocalClient(self.runtime.credentials)
-                result = client.get(memory_id)
+                try:
+                    result = client.get(memory_id)
+                except Exception as e:
+                    # Catch all exceptions for sync mode to ensure service degradation
+                    logger.exception(
+                        "Get operation failed with error: %s (memory_id: %s)",
+                        type(e).__name__,
+                        memory_id,
+                    )
+                    # Service degradation: return None to trigger "not found" handling
+                    result = None
 
             # Check if memory exists
             if not result or not isinstance(result, dict):
@@ -89,17 +101,6 @@ class GetMemoryTool(Tool):
 
             yield self.create_text_message(text_response)
 
-        except FuturesTimeoutError:
-            # Already handled above in async mode, but catch here for sync mode safety
-            logger.exception("Get operation timed out")
-            yield self.create_json_message({
-                "status": "ERROR",
-                "messages": f"Get operation timed out after {GET_OPERATION_TIMEOUT} seconds",
-                "results": {},
-            })
-            yield self.create_text_message(
-                "Get operation timed out. Please try again or check system status."
-            )
         except Exception as e:
             # Catch all exceptions to ensure workflow continues
             logger.exception("Error getting memory %s", memory_id)

@@ -89,8 +89,20 @@ class GetAllMemoriesTool(Tool):
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
             else:
+                # Sync mode: no timeout protection (blocking call)
+                # If timeout protection is needed, use async_mode=true
                 client = LocalClient(self.runtime.credentials)
-                results = client.get_all(params)
+                try:
+                    results = client.get_all(params)
+                except Exception as e:
+                    # Catch all exceptions for sync mode to ensure service degradation
+                    logger.exception(
+                        "Get all operation failed with error: %s (user_id: %s)",
+                        type(e).__name__,
+                        user_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
             logger.info("Retrieved %d memories", len(results))
 
             # JSON output
@@ -125,17 +137,6 @@ class GetAllMemoriesTool(Tool):
                     )
             yield self.create_text_message(text_response)
 
-        except FuturesTimeoutError:
-            # Already handled above in async mode, but catch here for sync mode safety
-            logger.exception("Get all operation timed out")
-            yield self.create_json_message({
-                "status": "ERROR",
-                "messages": f"Get all operation timed out after {GET_ALL_OPERATION_TIMEOUT} seconds",
-                "results": [],
-            })
-            yield self.create_text_message(
-                "Get all operation timed out. Please try again or check system status."
-            )
         except Exception as e:
             # Catch all exceptions to ensure workflow continues
             logger.exception("Error getting all memories for user_id: %s", user_id)

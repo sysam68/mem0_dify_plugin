@@ -53,8 +53,20 @@ class GetMemoryHistoryTool(Tool):
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
             else:
+                # Sync mode: no timeout protection (blocking call)
+                # If timeout protection is needed, use async_mode=true
                 client = LocalClient(self.runtime.credentials)
-                results = client.history(memory_id)
+                try:
+                    results = client.history(memory_id)
+                except Exception as e:
+                    # Catch all exceptions for sync mode to ensure service degradation
+                    logger.exception(
+                        "History operation failed with error: %s (memory_id: %s)",
+                        type(e).__name__,
+                        memory_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
             logger.info("Retrieved %d history records for memory %s", len(results), memory_id)
 
             # JSON output
@@ -93,17 +105,6 @@ class GetMemoryHistoryTool(Tool):
                     )
             yield self.create_text_message(text_response)
 
-        except FuturesTimeoutError:
-            # Already handled above in async mode, but catch here for sync mode safety
-            logger.exception("History operation timed out")
-            yield self.create_json_message({
-                "status": "ERROR",
-                "messages": f"History operation timed out after {HISTORY_OPERATION_TIMEOUT} seconds",
-                "results": [],
-            })
-            yield self.create_text_message(
-                "History operation timed out. Please try again or check system status."
-            )
         except Exception as e:
             # Catch all exceptions to ensure workflow continues
             logger.exception("Error getting memory history for %s", memory_id)

@@ -203,6 +203,7 @@ search(
     - Read operations (Search/Get/Get_All/History): always wait for results with timeout protection (60s for Search/Get_All, 30s for Get/History)
   - When false:
     - All operations block until completion
+    - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
 
 Example Vector DB JSON (pgvector):
 ```json
@@ -231,9 +232,10 @@ Example Vector DB JSON (pgvector):
 
 - **Write Operations** (Add/Update/Delete/Delete_All): In async mode, these operations return immediately with an ACCEPT status, and the actual operation is performed in the background
 - **Read Operations** (Search/Get/Get_All/History): These always wait for and return the actual results, regardless of async mode setting
-  - **Timeout Protection**: All async read operations have timeout mechanisms (60s for Search/Get_All, 30s for Get/History) to prevent indefinite hanging
+  - **Async Mode**: All async read operations have timeout mechanisms (60s for Search/Get_All, 30s for Get/History) to prevent indefinite hanging
+  - **Sync Mode**: No timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
   - **Service Degradation**: On timeout or error, tools log the event and return default/empty results to ensure workflow continuity
-- **Sync Mode**: All operations block until completion
+- **Unified Exception Handling**: Both sync and async modes have unified exception handling for service degradation, ensuring workflows continue even when individual tools fail
 
 ### Timeout & Service Degradation
 

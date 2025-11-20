@@ -165,19 +165,24 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
   - Read operations (Search/Get/Get_All/History): wait for results with timeout protection (60s for Search/Get_All, 30s for Get/History)
 - When `async_mode=false`:
   - All operations block until completion
+  - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
 
 ### Timeout & Service Degradation (v0.1.1+)
-- **Timeout Values**:
+- **Timeout Values** (Async Mode Only):
   - Search Memory: 60 seconds
   - Get All Memories: 60 seconds
   - Get Memory: 30 seconds
   - Get Memory History: 30 seconds
+  - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
 - **Service Degradation**: When operations timeout or encounter errors:
   - The event is logged with full exception details using `logger.exception`
-  - Background tasks are cancelled using `future.cancel()` to prevent resource leaks
+  - Background tasks are cancelled using `future.cancel()` to prevent resource leaks (async mode only)
   - Default/empty results are returned (empty list `[]` for Search/Get_All/History, `None` for Get)
   - Dify workflow continues execution without interruption
-- **Error Handling**: All tools now catch all `Exception` types, not just specific ones, ensuring comprehensive error coverage
+- **Unified Exception Handling**: Both sync and async modes have unified exception handling:
+  - Async mode: Handles `FuturesTimeoutError` (timeout) and general `Exception` types
+  - Sync mode: Handles general `Exception` types only (no timeout exceptions)
+  - Both modes implement service degradation to ensure workflow continuity
 
 ### Important operational notes
 

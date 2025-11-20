@@ -119,8 +119,21 @@ class SearchMemoryTool(Tool):
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
             else:
+                # Sync mode: no timeout protection (blocking call)
+                # If timeout protection is needed, use async_mode=true
                 client = LocalClient(self.runtime.credentials)
-                results = client.search(payload)
+                try:
+                    results = client.search(payload)
+                except Exception as e:
+                    # Catch all exceptions for sync mode to ensure service degradation
+                    logger.exception(
+                        "Search operation failed with error: %s (query: %s..., user_id: %s)",
+                        type(e).__name__,
+                        query[:50],
+                        user_id,
+                    )
+                    # Service degradation: return empty results to allow workflow to continue
+                    results = []
             logger.info("Search completed, found %d results", len(results))
 
             # JSON output
@@ -162,17 +175,6 @@ class SearchMemoryTool(Tool):
 
             yield self.create_text_message("\n".join(lines))
 
-        except FuturesTimeoutError:
-            # Already handled above in async mode, but catch here for sync mode safety
-            logger.exception("Search operation timed out")
-            yield self.create_json_message({
-                "status": "ERROR",
-                "messages": f"Search operation timed out after {SEARCH_OPERATION_TIMEOUT} seconds",
-                "results": [],
-            })
-            yield self.create_text_message(
-                "Search operation timed out. Please try again or check system status."
-            )
         except json.JSONDecodeError as e:
             # Should not happen here, but guard anyway
             logger.exception("Error parsing JSON during search")
