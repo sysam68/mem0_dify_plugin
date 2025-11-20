@@ -1,6 +1,7 @@
 """Dify tool for adding a memory via Mem0 client."""
 
 import asyncio
+import logging
 from collections.abc import Generator
 from typing import Any
 
@@ -9,6 +10,8 @@ from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import ADD_ACCEPT_RESULT, ADD_SKIP_RESULT
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
+logger = logging.getLogger(__name__)
 
 
 class AddMemoryTool(Tool):
@@ -19,6 +22,7 @@ class AddMemoryTool(Tool):
         user_id = tool_parameters.get("user_id")
         if not user_id:
             error_message = "user_id is required"
+            logger.error("Add memory failed: %s", error_message)
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to add memory: {error_message}")
@@ -63,6 +67,7 @@ class AddMemoryTool(Tool):
                     for m in messages
                 )
             ):
+                logger.info("Skipping memory addition for empty messages (user_id: %s)", user_id)
                 yield self.create_json_message({
                     "status": "SUCCESS",
                     "messages": messages,
@@ -72,11 +77,13 @@ class AddMemoryTool(Tool):
                 return
 
             async_mode = is_async_mode(self.runtime.credentials)
+            logger.info("Adding memory for user_id: %s, async_mode: %s", user_id, async_mode)
             if async_mode:
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit add to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.add(payload), loop)
+                logger.info("Memory addition submitted to background loop (user_id: %s)", user_id)
 
                 yield self.create_json_message({
                     "status": "SUCCESS",
@@ -87,6 +94,7 @@ class AddMemoryTool(Tool):
             else:
                 client = LocalClient(self.runtime.credentials)
                 result = client.add(payload)
+                logger.info("Memory added synchronously (user_id: %s)", user_id)
                 yield self.create_json_message({
                     "status": "SUCCESS",
                     "messages": messages,
@@ -94,7 +102,9 @@ class AddMemoryTool(Tool):
                 })
                 yield self.create_text_message("Memory added synchronously.")
 
-        except (ValueError, RuntimeError, TypeError) as e:
+        except Exception as e:
+            # Catch all exceptions to ensure workflow continues
+            logger.exception("Error adding memory for user_id: %s", user_id)
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})

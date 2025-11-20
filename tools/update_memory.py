@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import Generator
 from typing import Any
 
@@ -7,6 +8,8 @@ from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import UPDATE_ACCEPT_RESULT
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
+logger = logging.getLogger(__name__)
 
 
 class UpdateMemoryTool(Tool):
@@ -27,6 +30,7 @@ class UpdateMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            logger.info("Updating memory %s, async_mode: %s", memory_id, async_mode)
 
             # In sync mode, check if memory exists before updating
             if not async_mode:
@@ -34,6 +38,7 @@ class UpdateMemoryTool(Tool):
                 # Check if memory exists
                 existing = client.get(memory_id)
                 if not existing or not isinstance(existing, dict):
+                    logger.warning("Memory not found: %s", memory_id)
                     error_message = f"Memory not found: {memory_id}"
                     yield self.create_json_message(
                         {"status": "ERROR", "messages": error_message, "results": {}})
@@ -43,8 +48,10 @@ class UpdateMemoryTool(Tool):
                 # Wrap update call in try-except to catch Mem0 internal errors
                 try:
                     result = client.update(memory_id, {"text": text})
+                    logger.info("Memory %s updated successfully", memory_id)
                 except AttributeError:
                     # Mem0 internal error: memory was deleted between get() and update()
+                    logger.warning("Memory %s not found or already deleted", memory_id)
                     error_message = f"Memory not found or already deleted: {memory_id}"
                     yield self.create_json_message(
                         {"status": "ERROR", "messages": error_message, "results": {}})
@@ -56,12 +63,14 @@ class UpdateMemoryTool(Tool):
                     "messages": {"memory_id": memory_id, "text": text},
                     "results": result,
                 })
-                yield self.create_text_message(f"Memory {memory_id} updated to '{text}' successfully!")
+                yield self.create_text_message(
+                    f"Memory {memory_id} updated to '{text}' successfully!")
             else:
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit update to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.update(memory_id, {"text": text}), loop)
+                logger.info("Memory update submitted to background loop: %s", memory_id)
 
                 yield self.create_json_message({
                     "status": "SUCCESS",
@@ -70,7 +79,9 @@ class UpdateMemoryTool(Tool):
                 })
                 yield self.create_text_message("Asynchronous memory update has been accepted.")
 
-        except (ValueError, RuntimeError, TypeError, AttributeError) as e:
+        except Exception as e:
+            # Catch all exceptions to ensure workflow continues
+            logger.exception("Error updating memory %s", memory_id)
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})

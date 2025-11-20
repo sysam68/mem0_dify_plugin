@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import Generator
 from typing import Any
 
@@ -8,6 +9,8 @@ from utils.config_builder import is_async_mode
 from utils.constants import DELETE_ALL_ACCEPT_RESULT
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
+logger = logging.getLogger(__name__)
+
 
 class DeleteAllMemoriesTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
@@ -15,6 +18,7 @@ class DeleteAllMemoriesTool(Tool):
         user_id = tool_parameters.get("user_id")
         if not user_id:
             error_message = "user_id is required"
+            logger.error("Delete all memories failed: %s", error_message)
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Error: {error_message}")
@@ -29,11 +33,21 @@ class DeleteAllMemoriesTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            logger.warning(
+                "Deleting all memories for user_id: %s, async_mode: %s, params: %s",
+                user_id,
+                async_mode,
+                params,
+            )
             if async_mode:
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit delete_all to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.delete_all(params), loop)
+                logger.info(
+                    "Delete all operation submitted to background loop for user_id: %s",
+                    user_id,
+                )
 
                 yield self.create_json_message({
                     "status": "SUCCESS",
@@ -45,6 +59,11 @@ class DeleteAllMemoriesTool(Tool):
             else:
                 client = LocalClient(self.runtime.credentials)
                 result = client.delete_all(params)
+                logger.info(
+                    "All memories deleted successfully for user_id: %s, result: %s",
+                    user_id,
+                    result,
+                )
                 yield self.create_json_message({
                     "status": "SUCCESS",
                     "messages": {"filters": params},
@@ -53,7 +72,9 @@ class DeleteAllMemoriesTool(Tool):
                 yield self.create_text_message(
                     f"All memories deleted successfully with filters : {params}")
 
-        except (ValueError, RuntimeError, TypeError) as e:
+        except Exception as e:
+            # Catch all exceptions to ensure workflow continues
+            logger.exception("Error deleting all memories for user_id: %s", user_id)
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})

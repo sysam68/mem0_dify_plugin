@@ -1,11 +1,16 @@
 import asyncio
+import logging
 from collections.abc import Generator
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
+from utils.constants import GET_OPERATION_TIMEOUT
 from utils.mem0_client import AsyncLocalClient, LocalClient
+
+logger = logging.getLogger(__name__)
 
 
 class GetMemoryTool(Tool):
@@ -14,21 +19,52 @@ class GetMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            logger.info("Getting memory %s, async_mode: %s", memory_id, async_mode)
+            # Initialize result with default value to ensure it's always defined
+            result: dict[str, Any] | None = None
             if async_mode:
+                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed here.
+                # Resources are managed at the plugin lifecycle level via AsyncLocalClient.shutdown()
                 client = AsyncLocalClient(self.runtime.credentials)
+                # ensure_bg_loop() returns a long-lived, reusable event loop
                 loop = AsyncLocalClient.ensure_bg_loop()
-                result = asyncio.run_coroutine_threadsafe(client.get(memory_id), loop).result()
+                future = asyncio.run_coroutine_threadsafe(client.get(memory_id), loop)
+                try:
+                    result = future.result(timeout=GET_OPERATION_TIMEOUT)
+                except FuturesTimeoutError:
+                    # Cancel the future to prevent the background task from hanging
+                    future.cancel()
+                    logger.exception(
+                        "Get operation timed out after %d seconds for memory_id: %s",
+                        GET_OPERATION_TIMEOUT,
+                        memory_id,
+                    )
+                    # Service degradation: return None to trigger "not found" handling
+                    result = None
+                except Exception as e:
+                    # Catch all other exceptions (network errors, connection errors, DNS failures,
+                    # SSL errors, authentication failures, etc.) to ensure service degradation
+                    # works for all failure scenarios, not just timeouts
+                    logger.exception(
+                        "Get operation failed with error: %s (memory_id: %s)",
+                        type(e).__name__,
+                        memory_id,
+                    )
+                    # Service degradation: return None to trigger "not found" handling
+                    result = None
             else:
                 client = LocalClient(self.runtime.credentials)
                 result = client.get(memory_id)
 
             # Check if memory exists
             if not result or not isinstance(result, dict):
+                logger.warning("Memory not found: %s", memory_id)
                 error_message = f"Memory not found: {memory_id}"
                 yield self.create_json_message(
                     {"status": "ERROR", "messages": error_message, "results": {}})
                 yield self.create_text_message(f"Error: {error_message}")
                 return
+            logger.info("Memory %s retrieved successfully", memory_id)
 
             yield self.create_json_message({
                 "status": "SUCCESS",
@@ -53,7 +89,20 @@ class GetMemoryTool(Tool):
 
             yield self.create_text_message(text_response)
 
-        except (ValueError, RuntimeError, TypeError) as e:
+        except FuturesTimeoutError:
+            # Already handled above in async mode, but catch here for sync mode safety
+            logger.exception("Get operation timed out")
+            yield self.create_json_message({
+                "status": "ERROR",
+                "messages": f"Get operation timed out after {GET_OPERATION_TIMEOUT} seconds",
+                "results": {},
+            })
+            yield self.create_text_message(
+                "Get operation timed out. Please try again or check system status."
+            )
+        except Exception as e:
+            # Catch all exceptions to ensure workflow continues
+            logger.exception("Error getting memory %s", memory_id)
             error_message = f"Error: {e!s}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": {}})
