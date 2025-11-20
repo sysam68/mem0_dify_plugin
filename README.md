@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.0
+# Mem0 Dify Plugin v0.1.1
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -31,7 +31,13 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.0)
+### What's New (v0.1.1)
+- **Timeout & Service Degradation**: Added comprehensive timeout mechanisms for all async read operations (Search/Get/Get_All/History) with graceful service degradation. When operations timeout or encounter errors, the plugin logs the event and returns default/empty results to ensure Dify workflow continuity.
+- **Robust Error Handling**: Enhanced exception handling across all tools to catch all error types (network errors, connection failures, etc.), ensuring workflows continue even when individual tools fail.
+- **Resource Management**: Improved background task cancellation on timeout to prevent resource leaks and hanging tasks.
+- **Production Stability**: Fixed production issues where tools would hang indefinitely, ensuring reliable operation in production environments.
+
+### Previous Updates (v0.1.0)
 - **Smart Memory Management**: `add_memory` tool description updated to reflect its ability to intelligently add, update, or delete memories based on context.
 - **Robust Error Handling**: Enhanced `get_memory`, `update_memory`, and `delete_memory` to gracefully handle non-existent memories and race conditions with clear error messages instead of crashes.
 - **Bug Fixes**: Fixed `get_all_memories` returning empty results by correctly parsing Mem0's dictionary response format.
@@ -59,7 +65,7 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 
 ### Method 2: Install from Package
 
-Download `mem0-0.0.9.difypkg` from [Releases](../../releases) and upload it manually in Dify.
+Download `mem0-0.1.1.difypkg` from [Releases](../../releases) and upload it manually in Dify.
 
 ---
 
@@ -194,7 +200,7 @@ search(
 - `async_mode` (boolean, default: true)
   - When true (default):
     - Write operations (Add/Update/Delete/Delete_All): non-blocking, return ACCEPT status immediately
-    - Read operations (Search/Get/Get_All/History): always wait for results
+    - Read operations (Search/Get/Get_All/History): always wait for results with timeout protection (60s for Search/Get_All, 30s for Get/History)
   - When false:
     - All operations block until completion
 
@@ -225,7 +231,25 @@ Example Vector DB JSON (pgvector):
 
 - **Write Operations** (Add/Update/Delete/Delete_All): In async mode, these operations return immediately with an ACCEPT status, and the actual operation is performed in the background
 - **Read Operations** (Search/Get/Get_All/History): These always wait for and return the actual results, regardless of async mode setting
+  - **Timeout Protection**: All async read operations have timeout mechanisms (60s for Search/Get_All, 30s for Get/History) to prevent indefinite hanging
+  - **Service Degradation**: On timeout or error, tools log the event and return default/empty results to ensure workflow continuity
 - **Sync Mode**: All operations block until completion
+
+### Timeout & Service Degradation
+
+The plugin implements comprehensive timeout and service degradation mechanisms to ensure production stability:
+
+- **Timeout Values**:
+  - Search Memory: 60 seconds
+  - Get All Memories: 60 seconds
+  - Get Memory: 30 seconds
+  - Get Memory History: 30 seconds
+
+- **Service Degradation**: When operations timeout or encounter errors:
+  - The event is logged with full exception details
+  - Background tasks are cancelled to prevent resource leaks
+  - Default/empty results are returned (empty list `[]` for Search/Get_All/History, `None` for Get)
+  - Dify workflow continues execution without interruption
 
 ---
 
@@ -264,6 +288,8 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.1.1 | 2025-11-20 | Timeout & service degradation for async operations, robust error handling, resource management improvements, production stability fixes |
+| v0.1.0 | 2025-11-19 | Smart memory management, robust error handling for non-existent memories, race condition protection, bug fixes |
 | v0.0.9 | 2025-11-17 | Unified return format, enhanced async operations (Update/Delete/Delete_All non-blocking), standardized fields, extended constants, complete documentation |
 | v0.0.8 | 2025-11-11 | async_mode credential (default true), sync/async tool routing, provider validation aligned, docs updated |
 | v0.0.7 | 2025-11-08 | Local-only refactor, centralized constants, background event loop with graceful shutdown, non-blocking add (queued), search via background loop, normalized outputs |

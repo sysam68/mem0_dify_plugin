@@ -132,6 +132,18 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
   - Tools submit async coroutines to a single process-wide background event loop
   - Write operations (Add/Update/Delete/Delete_All) are non-blocking: return ACCEPT status immediately
   - Read operations (Search/Get/Get_All/History) wait for results and return actual data
+  - **Timeout protection** (v0.1.1+): All async read operations have timeout mechanisms:
+    - Search Memory: 60 seconds
+    - Get All Memories: 60 seconds
+    - Get Memory: 30 seconds
+    - Get Memory History: 30 seconds
+  
+- **Service degradation** (v0.1.1+):
+  - When operations timeout or encounter errors, the plugin gracefully degrades:
+    - Logs the event with full exception details
+    - Cancels background tasks using `future.cancel()` to prevent resource leaks
+    - Returns default/empty results (empty list `[]` for Search/Get_All/History, `None` for Get)
+    - Ensures Dify workflow continues execution without interruption
   
 - **Unified return format**:
   - All tools return: `{"status": "SUCCESS/ERROR", "messages": {...}, "results": {...}}`
@@ -142,6 +154,7 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
   
 - **Constants** (`utils/constants.py`):
   - `SEARCH_DEFAULT_TOP_K`, `MAX_CONCURRENT_MEM_ADDS`, `MAX_REQUEST_TIMEOUT`
+  - `SEARCH_OPERATION_TIMEOUT` (60s), `GET_OPERATION_TIMEOUT` (30s), `GET_ALL_OPERATION_TIMEOUT` (60s), `HISTORY_OPERATION_TIMEOUT` (30s)
   - `ADD_SKIP_RESULT`, `ADD_ACCEPT_RESULT`, `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, `DELETE_ALL_ACCEPT_RESULT`
   - `CUSTOM_PROMPT` for memory extraction
 
@@ -149,9 +162,22 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
 - `async_mode` is a provider credential (boolean) and defaults to true
 - When `async_mode=true` (default):
   - Write operations (Add/Update/Delete/Delete_All): non-blocking, return ACCEPT status immediately
-  - Read operations (Search/Get/Get_All/History): wait for results
+  - Read operations (Search/Get/Get_All/History): wait for results with timeout protection (60s for Search/Get_All, 30s for Get/History)
 - When `async_mode=false`:
   - All operations block until completion
+
+### Timeout & Service Degradation (v0.1.1+)
+- **Timeout Values**:
+  - Search Memory: 60 seconds
+  - Get All Memories: 60 seconds
+  - Get Memory: 30 seconds
+  - Get Memory History: 30 seconds
+- **Service Degradation**: When operations timeout or encounter errors:
+  - The event is logged with full exception details using `logger.exception`
+  - Background tasks are cancelled using `future.cancel()` to prevent resource leaks
+  - Default/empty results are returned (empty list `[]` for Search/Get_All/History, `None` for Get)
+  - Dify workflow continues execution without interruption
+- **Error Handling**: All tools now catch all `Exception` types, not just specific ones, ensuring comprehensive error coverage
 
 ### Important operational notes
 
