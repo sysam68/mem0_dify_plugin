@@ -1,3 +1,5 @@
+"""Dify tool for retrieving all memories from Mem0 for a specific user."""
+
 import asyncio
 import json
 import logging
@@ -15,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class GetAllMemoriesTool(Tool):
+    """Tool that retrieves all memories for a specific user, with optional filtering."""
+
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
         # Validate required user_id
         user_id = tool_parameters.get("user_id")
@@ -50,29 +54,44 @@ class GetAllMemoriesTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            # Get timeout from parameters, use default if not provided
+            timeout = tool_parameters.get("timeout")
+            if timeout is None:
+                timeout = GET_ALL_OPERATION_TIMEOUT
+            else:
+                try:
+                    timeout = float(timeout)
+                except (TypeError, ValueError):
+                    logger.warning(
+                        "Invalid timeout value: %s, using default: %d",
+                        timeout,
+                        GET_ALL_OPERATION_TIMEOUT,
+                    )
+                    timeout = GET_ALL_OPERATION_TIMEOUT
             logger.info(
-                "Getting all memories for user_id: %s, async_mode: %s, params: %s",
+                "Getting all memories for user_id: %s, async_mode: %s, timeout: %s, params: %s",
                 user_id,
                 async_mode,
+                timeout,
                 params,
             )
             # Initialize results with default value to ensure it's always defined
             results: list[dict[str, Any]] = []
             if async_mode:
-                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed here.
-                # Resources are managed at the plugin lifecycle level via AsyncLocalClient.shutdown()
+                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed.
+                # Resources are managed at plugin lifecycle level via AsyncLocalClient.shutdown()
                 client = AsyncLocalClient(self.runtime.credentials)
                 # ensure_bg_loop() returns a long-lived, reusable event loop
                 loop = AsyncLocalClient.ensure_bg_loop()
                 future = asyncio.run_coroutine_threadsafe(client.get_all(params), loop)
                 try:
-                    results = future.result(timeout=GET_ALL_OPERATION_TIMEOUT)
+                    results = future.result(timeout=timeout)
                 except FuturesTimeoutError:
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Get all operation timed out after %d seconds for user_id: %s",
-                        GET_ALL_OPERATION_TIMEOUT,
+                        "Get all operation timed out after %s seconds for user_id: %s",
+                        timeout,
                         user_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue

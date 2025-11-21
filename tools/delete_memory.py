@@ -1,3 +1,5 @@
+"""Dify tool for deleting a memory from Mem0 by ID."""
+
 import asyncio
 import logging
 from collections.abc import Generator
@@ -13,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteMemoryTool(Tool):
+    """Tool that deletes a specific memory by its ID."""
+
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
         memory_id = tool_parameters["memory_id"]
 

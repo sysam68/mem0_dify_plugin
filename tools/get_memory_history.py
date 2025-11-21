@@ -1,3 +1,5 @@
+"""Dify tool for retrieving memory history from Mem0."""
+
 import asyncio
 import logging
 from collections.abc import Generator
@@ -14,29 +16,50 @@ logger = logging.getLogger(__name__)
 
 
 class GetMemoryHistoryTool(Tool):
+    """Tool that retrieves the change history of a specific memory by ID."""
+
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
         memory_id = tool_parameters["memory_id"]
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
-            logger.info("Getting memory history for %s, async_mode: %s", memory_id, async_mode)
+            # Get timeout from parameters, use default if not provided
+            timeout = tool_parameters.get("timeout")
+            if timeout is None:
+                timeout = HISTORY_OPERATION_TIMEOUT
+            else:
+                try:
+                    timeout = float(timeout)
+                except (TypeError, ValueError):
+                    logger.warning(
+                        "Invalid timeout value: %s, using default: %d",
+                        timeout,
+                        HISTORY_OPERATION_TIMEOUT,
+                    )
+                    timeout = HISTORY_OPERATION_TIMEOUT
+            logger.info(
+                "Getting memory history for %s, async_mode: %s, timeout: %s",
+                memory_id,
+                async_mode,
+                timeout,
+            )
             # Initialize results with default value to ensure it's always defined
             results: list[dict[str, Any]] = []
             if async_mode:
-                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed here.
-                # Resources are managed at the plugin lifecycle level via AsyncLocalClient.shutdown()
+                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed.
+                # Resources are managed at plugin lifecycle level via AsyncLocalClient.shutdown()
                 client = AsyncLocalClient(self.runtime.credentials)
                 # ensure_bg_loop() returns a long-lived, reusable event loop
                 loop = AsyncLocalClient.ensure_bg_loop()
                 future = asyncio.run_coroutine_threadsafe(client.history(memory_id), loop)
                 try:
-                    results = future.result(timeout=HISTORY_OPERATION_TIMEOUT)
+                    results = future.result(timeout=timeout)
                 except FuturesTimeoutError:
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "History operation timed out after %d seconds for memory_id: %s",
-                        HISTORY_OPERATION_TIMEOUT,
+                        "History operation timed out after %s seconds for memory_id: %s",
+                        timeout,
                         memory_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue

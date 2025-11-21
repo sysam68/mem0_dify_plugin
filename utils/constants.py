@@ -7,8 +7,8 @@ ADD_SKIP_RESULT: dict[str, object] = {
             "id": "",
             "memory": "",
             "event": "SKIP",
-        }
-    ]
+        },
+    ],
 }
 
 ADD_ACCEPT_RESULT: dict[str, object] = {
@@ -17,36 +17,36 @@ ADD_ACCEPT_RESULT: dict[str, object] = {
             "id": "",
             "memory": "",
             "event": "ACCEPT",
-        }
-    ]
+        },
+    ],
 }
 
 UPDATE_ACCEPT_RESULT: dict[str, object] = {
     "results": {
-        "message": "Memory update has been accepted"
-    }
+        "message": "Memory update has been accepted",
+    },
 }
 
 DELETE_ACCEPT_RESULT: dict[str, object] = {
     "results": {
-        "message": "Memory deletion has been accepted"
-    }
+        "message": "Memory deletion has been accepted",
+    },
 }
 
 DELETE_ALL_ACCEPT_RESULT: dict[str, object] = {
     "results": {
-        "message": "Batch memory deletion has been accepted"
-    }
+        "message": "Batch memory deletion has been accepted",
+    },
 }
 
 # The maximum timeout (in seconds) for a single request, to avoid long waits or hanging connections.
-MAX_REQUEST_TIMEOUT: int = 120
+MAX_REQUEST_TIMEOUT: int = 60
 
 # Operation timeouts (in seconds) for individual Mem0 operations
 # These should be less than MAX_REQUEST_TIMEOUT to allow for error handling
-SEARCH_OPERATION_TIMEOUT: int = 60
+SEARCH_OPERATION_TIMEOUT: int = 30
 GET_OPERATION_TIMEOUT: int = 30
-GET_ALL_OPERATION_TIMEOUT: int = 60
+GET_ALL_OPERATION_TIMEOUT: int = 30
 HISTORY_OPERATION_TIMEOUT: int = 30
 
 # Concurrency controls

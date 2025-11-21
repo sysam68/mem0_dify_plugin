@@ -1,5 +1,50 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.2 (2025-11-21)
+
+### 🎯 Configurable Timeout & Code Quality Improvements
+
+This release introduces configurable timeout parameters for all read operations and optimizes default timeout values for better performance and reliability.
+
+#### Highlights
+- **Configurable Timeout Parameters**: All read operations (Search/Get/Get_All/History) now support user-configurable timeout values through the Dify plugin configuration interface
+  - Timeout parameters are set as `form: form` (manual input), not exposed to LLM for inference
+  - If not specified, tools use default values from `constants.py`
+  - Allows users to customize timeout behavior per tool based on their specific needs
+- **Optimized Default Timeouts**: Reduced default timeout values for better responsiveness:
+  - `MAX_REQUEST_TIMEOUT`: 120 seconds → **60 seconds**
+  - `SEARCH_OPERATION_TIMEOUT`: 60 seconds → **30 seconds**
+  - `GET_ALL_OPERATION_TIMEOUT`: 60 seconds → **30 seconds**
+  - `GET_OPERATION_TIMEOUT`: 30 seconds → **30 seconds** (unchanged)
+  - `HISTORY_OPERATION_TIMEOUT`: 30 seconds → **30 seconds** (unchanged)
+- **Code Quality**: Added missing module and class docstrings, fixed formatting issues to comply with Python best practices
+
+#### 🔧 Technical Details
+- **Timeout Configuration**:
+  - Added `timeout` parameter to `search_memory.yaml`, `get_all_memories.yaml`, `get_memory.yaml`, `get_memory_history.yaml`
+  - Parameters are optional and use `form: form` (manual configuration, not LLM inference)
+  - Tools read timeout from `tool_parameters.get("timeout")` and fall back to constants if not provided
+  - Invalid timeout values are caught and logged with a warning, defaulting to constants
+- **Default Timeout Values**:
+  - All read operations now default to 30 seconds (previously 60s for Search/Get_All)
+  - `MAX_REQUEST_TIMEOUT` reduced to 60 seconds for faster failure detection
+- **Code Quality**:
+  - Added module docstrings to all tool files
+  - Added class docstrings to all tool classes
+  - Fixed formatting issues (blank lines after class docstrings)
+
+#### ⚠️ Migration Notes
+- No breaking changes in API or behavior
+- Default timeout values have changed (60s → 30s for Search/Get_All operations)
+- Users can now configure custom timeout values per tool in the Dify plugin configuration interface
+- If custom timeout values are needed, they should be set in the tool configuration
+
+#### 🐛 Bug Fixes
+- Fixed missing module and class docstrings in tool files
+- Fixed formatting issues (missing blank lines after class docstrings)
+
+---
+
 ## Version 0.1.1 (2025-11-20)
 
 ### 🎯 Production Stability & Timeout Protection
@@ -225,16 +270,14 @@ This version brings complete support for Mem0's latest API features, including v
 **Breaking Changes:**
 - `user_id` is now optional (at least one entity ID should be provided)
 
-### **Retrieve Memory** (Enhanced with v2 API)
+### **Search Memory** (Enhanced)
 **New Parameters:**
-- `version` - Select API version (v1 or v2)
 - `agent_id` - Filter by agent ID
-- `app_id` - Filter by application ID
 - `run_id` - Filter by run ID
-- `filters` - Advanced AND/OR logic filters (v2 only)
-- `limit` - Maximum number of results
+- `filters` - Advanced AND/OR logic filters (JSON string)
+- `top_k` - Maximum number of results
 
-**v2 Advanced Filters Example:**
+**Advanced Filters Example:**
 ```json
 {
   "AND": [
@@ -255,9 +298,8 @@ This version brings complete support for Mem0's latest API features, including v
 
 ### Multi-Entity Support
 All tools now support multiple entity types:
-- `user_id` - User-specific memories
+- `user_id` - User-specific memories (required for add_memory)
 - `agent_id` - Agent-specific memories
-- `app_id` - Application-specific memories
 - `run_id` - Run-specific memories
 
 ### Metadata Support
@@ -265,10 +307,10 @@ All tools now support multiple entity types:
 - Retrieve and filter by metadata
 - Supports any JSON-serializable data
 
-### Version Control
-- Choose output format (v1.0/v1.1/v2)
-- v2 provides richer response data
-- Backward compatible with v1
+### Output Format
+- Choose output format (v1.0/v1.1/v2) via `output_format` parameter
+- Different formats provide varying levels of detail
+- Default is v1.1
 
 ### Enhanced Error Handling
 - Better error messages for invalid JSON
@@ -293,25 +335,20 @@ All tools now support multiple entity types:
 
 ## 🔧 Technical Details
 
-### API Endpoints Covered
-- `POST /v1/memories/` - Create memories
-- `POST /v1/memories/search/` - Search memories (v1 & v2)
-- `GET /v1/memories/` - List memories
-- `GET /v1/memories/{id}/` - Get memory
-- `PUT /v1/memories/{id}/` - Update memory
-- `DELETE /v1/memories/{id}/` - Delete memory
-- `DELETE /v1/memories/` - Batch delete
-- `GET /v1/memories/{id}/history/` - Memory history
+### Local Mode Implementation
+- This plugin runs in **Local-only** mode using Mem0 SDK
+- All operations use local Mem0 client (not HTTP API)
+- Requires local configuration for LLM, Embedder, and Vector DB
 
 ### Dependencies
-- `httpx` - HTTP client
+- `mem0` - Mem0 SDK for local mode
 - `dify_plugin` - Dify plugin framework
 - Python 3.12
 
 ### Configuration Updates
 - Updated `provider/mem0.yaml` with all 8 tools
 - Updated `manifest.yaml` to version 0.0.3
-- Enhanced tool descriptions with v2 features
+- Enhanced tool descriptions with local mode features
 
 ---
 
@@ -330,11 +367,11 @@ All new features include complete translations:
 ### From v0.0.2 to v0.0.3
 
 **Breaking Changes:**
-1. `user_id` in `add_memory` is now optional
-   - **Action**: Ensure at least one of `user_id`, `agent_id`, `app_id`, or `run_id` is provided
+1. `user_id` in `add_memory` is required
+   - **Action**: Always provide `user_id` when adding memories
 
-2. `user_id` in `search_memory` is now optional
-   - **Action**: Can use `filters` or other entity IDs instead
+2. `user_id` in `search_memory` is required
+   - **Action**: Always provide `user_id` when searching memories
 
 **Recommended Updates:**
 1. Start using `metadata` for richer context
@@ -389,16 +426,16 @@ All new features include complete translations:
 
 ## 📝 Notes
 
-- All API calls use 30-second timeout
+- Plugin runs in Local-only mode (no SaaS/API mode)
+- All operations use Mem0 SDK (not HTTP API)
 - JSON responses include both structured data and human-readable text
-- Supports all Mem0 Platform features as of October 2025
+- Supports all Mem0 Local mode features
 
 ---
 
 ## 🙏 Credits
 
-- Based on [Mem0 AI](https://mem0.ai) official API documentation
-- Developed using Context7 for documentation retrieval
+- Based on [Mem0 AI](https://mem0.ai) SDK and documentation
 - Compatible with Dify Plugin Framework
 
 ---
