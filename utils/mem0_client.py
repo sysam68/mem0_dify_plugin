@@ -5,16 +5,16 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-import logging
 import threading
 from typing import Any
 
 from mem0 import AsyncMemory, Memory
 
 from .config_builder import build_local_mem0_config
-from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT, MAX_CONCURRENT_MEM_ADDS
+from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT, MAX_CONCURRENT_MEMORY_OPERATIONS
+from .logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _normalize_search_results(results: object) -> list[dict[str, Any]]:
@@ -368,7 +368,7 @@ class AsyncLocalClient:
         # Async lock to protect one-time asynchronous initialization.
         self._create_lock = asyncio.Lock()
         # Semaphore to limit the concurrency of memory operations
-        self._semaphore = asyncio.Semaphore(MAX_CONCURRENT_MEM_ADDS)
+        self._semaphore = asyncio.Semaphore(MAX_CONCURRENT_MEMORY_OPERATIONS)
         # Toggle whether to use custom prompt
         self.use_custom_prompt = True
         self.custom_prompt = CUSTOM_PROMPT

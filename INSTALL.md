@@ -178,7 +178,7 @@ cd <your-plugin-directory>
    - 或使用 CLI：`dify plugin uninstall mem0`
 
 3. **安装新版本**
-   - 按照上述步骤安装 v0.1.2
+   - 按照上述步骤安装 v0.1.3
    - 重新配置本地 JSON 凭证（LLM/Embedder/Vector DB）
 
 4. **验证功能**
@@ -232,8 +232,9 @@ cd <your-plugin-directory>
 3. **性能优化**
    - 使用 `top_k/limit` 控制返回数量（默认 5）
    - 合理使用过滤器减少查询范围
-   - 插件内部使用单进程级后台事件循环与信号量限制并发
+   - 插件内部使用单进程级后台事件循环与信号量限制并发（v0.1.3+：`MAX_CONCURRENT_MEMORY_OPERATIONS` 默认 40）
    - 进程退出时会优雅停止后台 loop
+   - pgvector 连接池自动配置（v0.1.3+）：最小连接数 10，最大连接数 40，确保有足够的数据库连接支持高并发场景
 
 4. **异步模式（v0.1.1+）**
    - `async_mode` 默认为 true（异步模式）
@@ -246,13 +247,26 @@ cd <your-plugin-directory>
      - 所有操作阻塞直至完成
      - **注意**：同步模式没有超时保护（阻塞调用）。如果需要超时保护，请使用 `async_mode=true`
 
-5. **可配置超时（v0.1.2+）**
+5. **数据库连接池（v0.1.3+）**
+   - pgvector 连接池自动配置：最小连接数 10，最大连接数 40
+   - 连接池大小与 `MAX_CONCURRENT_MEMORY_OPERATIONS`（40）对齐，确保有足够的数据库连接支持并发操作
+   - 如果需要在 pgvector 配置中显式设置 `minconn` 或 `maxconn`，这些值将被使用而不是默认值
+
+6. **PGVector 配置优化（v0.1.3+）**
+   - 支持三种连接方式的优先级处理：
+     1. `connection_pool`（最高优先级）- psycopg2 连接池对象
+     2. `connection_string`（第二优先级）- PostgreSQL 连接字符串
+     3. 离散参数（最低优先级）- user, password, host, port, dbname, sslmode
+   - 如果提供离散参数，插件会自动构建 `connection_string` 并清理冗余参数
+   - 符合 Mem0 官方文档的配置规范
+
+7. **可配置超时（v0.1.2+）**
    - 所有读操作（Search/Get/Get_All/History）现在支持用户可配置的超时值
    - 超时参数在 Dify 插件配置界面中作为手动输入字段提供
    - 如果未指定，工具使用 `constants.py` 中的默认值
    - 无效的超时值会被捕获并记录警告，回退到默认值
 
-6. **超时与服务降级（v0.1.1+）**
+8. **超时与服务降级（v0.1.1+）**
    - **异步模式**：所有异步读操作都配备了超时保护机制，防止工具无限期挂起
    - **同步模式**：没有超时保护（阻塞调用）。如果需要超时保护，请使用 `async_mode=true`
    - **默认超时值（v0.1.2+）**：

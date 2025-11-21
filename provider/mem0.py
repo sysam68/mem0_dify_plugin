@@ -6,15 +6,15 @@ with Mem0's memory capabilities in a self-hosted/local setup.
 """
 
 import asyncio
-import logging
 from typing import Any
 
 from dify_plugin import ToolProvider
 from dify_plugin.errors.tool import ToolProviderCredentialValidationError
 from utils.config_builder import is_async_mode
+from utils.logger import get_logger
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class Mem0Provider(ToolProvider):
