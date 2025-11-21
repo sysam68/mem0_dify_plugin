@@ -1,7 +1,6 @@
 """Dify tool for retrieving a specific memory from Mem0 by ID."""
 
 import asyncio
-import logging
 from collections.abc import Generator
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
@@ -10,9 +9,10 @@ from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import GET_OPERATION_TIMEOUT
+from utils.logger import get_logger
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class GetMemoryTool(Tool):

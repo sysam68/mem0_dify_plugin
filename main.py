@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import atexit
 import contextlib
-import logging
 import os
 import signal
 import sys
@@ -15,9 +14,10 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 
 from dify_plugin import DifyPluginEnv, Plugin
 from utils.constants import MAX_REQUEST_TIMEOUT
+from utils.logger import get_logger
 from utils.mem0_client import AsyncLocalClient
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 plugin = Plugin(DifyPluginEnv(MAX_REQUEST_TIMEOUT=MAX_REQUEST_TIMEOUT))
 

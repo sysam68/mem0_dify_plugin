@@ -43,8 +43,9 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
   - The plugin registers an exit hook and SIGTERM/SIGINT handlers to drain pending tasks briefly and stop the background loop
   
 - **Constants** (`utils/constants.py`):
-  - `SEARCH_DEFAULT_TOP_K`, `MAX_CONCURRENT_MEM_ADDS`, `MAX_REQUEST_TIMEOUT` (60s in v0.1.2+)
+  - `SEARCH_DEFAULT_TOP_K`, `MAX_CONCURRENT_MEMORY_OPERATIONS` (40 in v0.1.3+), `MAX_REQUEST_TIMEOUT` (60s in v0.1.2+)
   - `SEARCH_OPERATION_TIMEOUT` (30s in v0.1.2+), `GET_OPERATION_TIMEOUT` (30s), `GET_ALL_OPERATION_TIMEOUT` (30s in v0.1.2+), `HISTORY_OPERATION_TIMEOUT` (30s)
+  - `PGVECTOR_MIN_CONNECTIONS` (10 in v0.1.3+), `PGVECTOR_MAX_CONNECTIONS` (40 in v0.1.3+)
   - `ADD_SKIP_RESULT`, `ADD_ACCEPT_RESULT`, `UPDATE_ACCEPT_RESULT`, `DELETE_ACCEPT_RESULT`, `DELETE_ALL_ACCEPT_RESULT`
   - `CUSTOM_PROMPT` for memory extraction
 
@@ -89,6 +90,15 @@ Each JSON must be a map with shape: `{ "provider": <string>, "config": { ... } }
 #### Vector Store Connection
 - **Debug Mode** (running `python -m main` locally): Use `localhost:<port>` to connect to pgvector
 - **Production Mode** (running in Docker): Use Docker container name (e.g., `docker-pgvector-1`) and internal port (e.g., `5432`)
+
+#### PGVector Configuration (v0.1.3+)
+- **Connection Pool**: Automatically configured with min=10, max=40 connections to align with `MAX_CONCURRENT_MEMORY_OPERATIONS`
+- **Parameter Priority**: The plugin handles pgvector configuration according to Mem0 official documentation:
+  1. `connection_pool` (highest priority) - psycopg2 connection pool object
+  2. `connection_string` (second priority) - PostgreSQL connection string
+  3. Individual parameters (lowest priority) - user, password, host, port, dbname, sslmode
+- **Automatic Connection String Building**: If discrete parameters are provided, the plugin automatically builds a `connection_string` and removes redundant parameters
+- **Custom Pool Settings**: If `minconn` or `maxconn` are explicitly provided in pgvector config, they will be used instead of defaults
 
 ## User Privacy Policy
 

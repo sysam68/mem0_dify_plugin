@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from collections.abc import Generator
 from typing import Any
 
@@ -7,9 +6,10 @@ from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import UPDATE_ACCEPT_RESULT
+from utils.logger import get_logger
 from utils.mem0_client import AsyncLocalClient, LocalClient
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class UpdateMemoryTool(Tool):

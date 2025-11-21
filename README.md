@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.2
+# Mem0 Dify Plugin v0.1.3
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -31,7 +31,13 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.2)
+### What's New (v0.1.3)
+- **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
+- **Database Connection Pool Optimization**: Added automatic connection pool settings for pgvector (min: 10, max: 40) to align with concurrent operation limits, ensuring sufficient database connections for high-concurrency scenarios.
+- **PGVector Configuration Enhancement**: Optimized pgvector configuration handling according to Mem0 official documentation, properly supporting parameter priority (connection_pool > connection_string > individual parameters) and automatically building connection strings from discrete parameters.
+- **Constant Naming Optimization**: Renamed `MAX_CONCURRENT_MEM_ADDS` to `MAX_CONCURRENT_MEMORY_OPERATIONS` (default: 40) to accurately reflect that it controls concurrency for all async memory operations, not just add operations.
+
+### Previous Updates (v0.1.2)
 - **Configurable Timeout Parameters**: All read operations (Search/Get/Get_All/History) now support user-configurable timeout values through the Dify plugin configuration interface. Timeout parameters are set as manual input fields (not exposed to LLM), allowing users to customize timeout behavior per tool based on their specific needs.
 - **Optimized Default Timeouts**: Reduced default timeout values for better responsiveness - all read operations now default to 30 seconds (previously 60s for Search/Get_All), and `MAX_REQUEST_TIMEOUT` reduced to 60 seconds (from 120s).
 - **Code Quality**: Added missing module and class docstrings, fixed formatting issues to comply with Python best practices.
@@ -70,7 +76,7 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 
 ### Method 2: Install from Package
 
-Download `mem0-0.1.2.difypkg` from [Releases](../../releases) and upload it manually in Dify.
+Download `mem0-0.1.3.difypkg` from [Releases](../../releases) and upload it manually in Dify.
 
 ---
 
@@ -309,6 +315,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.1.3 | 2025-11-22 | Unified logging configuration, database connection pool optimization, pgvector config enhancement, constant naming optimization |
 | v0.1.2 | 2025-11-21 | Configurable timeout parameters, optimized default timeouts (30s for all read ops), code quality improvements |
 | v0.1.1 | 2025-11-20 | Timeout & service degradation for async operations, robust error handling, resource management improvements, production stability fixes |
 | v0.1.0 | 2025-11-19 | Smart memory management, robust error handling for non-existent memories, race condition protection, bug fixes |

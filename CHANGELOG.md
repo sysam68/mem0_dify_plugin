@@ -1,5 +1,58 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.3 (2025-11-22)
+
+### 🎯 Logging, Configuration & Database Connection Pool Optimization
+
+This release focuses on improving logging infrastructure, optimizing configuration handling, and enhancing database connection pool management for better production stability.
+
+#### Highlights
+- **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler (`plugin_logger_handler`) to ensure all logs are properly output to the Dify plugin container
+  - Created `utils/logger.py` module with `get_logger()` function for consistent logger initialization
+  - All Python modules now use the unified logger configuration
+  - Logs are correctly routed to Dify's logging system for better debugging and monitoring
+- **Constant Naming Optimization**: Renamed `MAX_CONCURRENT_MEM_ADDS` to `MAX_CONCURRENT_MEMORY_OPERATIONS` to accurately reflect its purpose
+  - The constant controls concurrency for all async memory operations (search, add, get, get_all, update, delete, delete_all, history), not just add operations
+  - Updated default value from 5 to 40 to support higher concurrency
+- **Database Connection Pool Configuration**: Added automatic connection pool settings for pgvector
+  - New constants: `PGVECTOR_MIN_CONNECTIONS` (10) and `PGVECTOR_MAX_CONNECTIONS` (40)
+  - Connection pool settings are automatically applied when initializing pgvector if not explicitly provided
+  - Pool size aligns with `MAX_CONCURRENT_MEMORY_OPERATIONS` to ensure sufficient database connections
+- **PGVector Configuration Optimization**: Enhanced pgvector configuration handling according to Mem0 official documentation
+  - Properly handles parameter priority: `connection_pool` (highest) > `connection_string` > individual parameters
+  - Automatically builds `connection_string` from discrete parameters (dbname, user, password, host, port, sslmode)
+  - Cleans up redundant connection parameters based on priority
+  - Preserves all valid pgvector config keys (collection_name, embedding_model_dims, diskann, hnsw, etc.)
+
+#### 🔧 Technical Details
+- **Logging Infrastructure**:
+  - Created `utils/logger.py` with `get_logger(name: str)` function
+  - Uses `dify_plugin.config.logger_format.plugin_logger_handler` for proper log routing
+  - All tool files, utility modules, and main.py updated to use unified logger
+  - Prevents duplicate log handlers with `if not logger.handlers` check
+- **Constants Updates**:
+  - Renamed `MAX_CONCURRENT_MEM_ADDS` → `MAX_CONCURRENT_MEMORY_OPERATIONS` (default: 40)
+  - Added `PGVECTOR_MIN_CONNECTIONS: int = 10`
+  - Added `PGVECTOR_MAX_CONNECTIONS: int = 40`
+- **PGVector Configuration**:
+  - Updated `_normalize_pgvector_config()` to handle three connection methods with proper priority
+  - Automatically sets `minconn` and `maxconn` if not provided in user configuration
+  - Supports both `connection_string` and discrete parameter forms
+  - Validates and preserves all official pgvector config keys
+
+#### ⚠️ Migration Notes
+- No breaking changes in API or behavior
+- Constant name change: `MAX_CONCURRENT_MEM_ADDS` → `MAX_CONCURRENT_MEMORY_OPERATIONS` (internal only, no user impact)
+- Connection pool settings are automatically applied to pgvector configurations
+- If custom connection pool settings are needed, they can be explicitly set in pgvector config
+
+#### 🐛 Bug Fixes
+- Fixed logging output routing to ensure logs appear in Dify plugin container
+- Fixed constant naming to accurately reflect its purpose
+- Improved pgvector configuration handling to match Mem0 official documentation
+
+---
+
 ## Version 0.1.2 (2025-11-21)
 
 ### 🎯 Configurable Timeout & Code Quality Improvements
@@ -193,7 +246,7 @@ This release focuses on stability, local-only operation, and developer ergonomic
 
 #### Highlights
 - Centralized constants in `utils/constants.py`:
-  - `MAX_CONCURRENT_MEM_ADDS` (default: 5)
+  - `MAX_CONCURRENT_MEMORY_OPERATIONS` (default: 5, renamed from MAX_CONCURRENT_MEM_ADDS)
   - `SEARCH_DEFAULT_TOP_K` (default: 5)
   - `MAX_REQUEST_TIMEOUT` (default: 120)
   - Shared response shapes: `ADD_SKIP_RESULT`, `ADD_ACCEPT_RESULT`

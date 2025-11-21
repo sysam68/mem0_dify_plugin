@@ -50,8 +50,15 @@ GET_ALL_OPERATION_TIMEOUT: int = 30
 HISTORY_OPERATION_TIMEOUT: int = 30
 
 # Concurrency controls
-# Maximum concurrent add() operations per process to avoid exhausting DB/vector store pools
-MAX_CONCURRENT_MEM_ADDS: int = 5
+# Maximum concurrent async memory operations per process to avoid exhausting DB/vector store pools
+# Applies to all async operations: search, add, get, get_all, update, delete, delete_all, history
+MAX_CONCURRENT_MEMORY_OPERATIONS: int = 40
+
+# Database connection pool settings for pgvector
+# These values should align with MAX_CONCURRENT_MEMORY_OPERATIONS to ensure sufficient connections
+PGVECTOR_MIN_CONNECTIONS: int = 10  # Minimum number of connections in the pool
+# Maximum number of connections in the pool (should match MAX_CONCURRENT_MEMORY_OPERATIONS)
+PGVECTOR_MAX_CONNECTIONS: int = 40
 
 # Default top_k for search
 SEARCH_DEFAULT_TOP_K: int = 5
