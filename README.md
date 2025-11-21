@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.1
+# Mem0 Dify Plugin v0.1.2
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -31,7 +31,12 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.1)
+### What's New (v0.1.2)
+- **Configurable Timeout Parameters**: All read operations (Search/Get/Get_All/History) now support user-configurable timeout values through the Dify plugin configuration interface. Timeout parameters are set as manual input fields (not exposed to LLM), allowing users to customize timeout behavior per tool based on their specific needs.
+- **Optimized Default Timeouts**: Reduced default timeout values for better responsiveness - all read operations now default to 30 seconds (previously 60s for Search/Get_All), and `MAX_REQUEST_TIMEOUT` reduced to 60 seconds (from 120s).
+- **Code Quality**: Added missing module and class docstrings, fixed formatting issues to comply with Python best practices.
+
+### Previous Updates (v0.1.1)
 - **Timeout & Service Degradation**: Added comprehensive timeout mechanisms for all async read operations (Search/Get/Get_All/History) with graceful service degradation. When operations timeout or encounter errors, the plugin logs the event and returns default/empty results to ensure Dify workflow continuity.
 - **Robust Error Handling**: Enhanced exception handling across all tools to catch all error types (network errors, connection failures, etc.), ensuring workflows continue even when individual tools fail.
 - **Resource Management**: Improved background task cancellation on timeout to prevent resource leaks and hanging tasks.
@@ -65,7 +70,7 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 
 ### Method 2: Install from Package
 
-Download `mem0-0.1.1.difypkg` from [Releases](../../releases) and upload it manually in Dify.
+Download `mem0-0.1.2.difypkg` from [Releases](../../releases) and upload it manually in Dify.
 
 ---
 
@@ -200,10 +205,16 @@ search(
 - `async_mode` (boolean, default: true)
   - When true (default):
     - Write operations (Add/Update/Delete/Delete_All): non-blocking, return ACCEPT status immediately
-    - Read operations (Search/Get/Get_All/History): always wait for results with timeout protection (60s for Search/Get_All, 30s for Get/History)
+    - Read operations (Search/Get/Get_All/History): always wait for results with timeout protection (default: 30s for all read operations)
   - When false:
     - All operations block until completion
     - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
+
+### Configurable Timeout (v0.1.2+)
+- All read operations (Search/Get/Get_All/History) now support user-configurable timeout values
+- Timeout parameters are available in the Dify plugin configuration interface as manual input fields
+- If not specified, tools use default values (30 seconds for all read operations)
+- Allows customization per tool based on specific use case requirements
 
 Example Vector DB JSON (pgvector):
 ```json
@@ -232,7 +243,8 @@ Example Vector DB JSON (pgvector):
 
 - **Write Operations** (Add/Update/Delete/Delete_All): In async mode, these operations return immediately with an ACCEPT status, and the actual operation is performed in the background
 - **Read Operations** (Search/Get/Get_All/History): These always wait for and return the actual results, regardless of async mode setting
-  - **Async Mode**: All async read operations have timeout mechanisms (60s for Search/Get_All, 30s for Get/History) to prevent indefinite hanging
+  - **Async Mode**: All async read operations have timeout mechanisms (default: 30s for all operations) to prevent indefinite hanging
+  - **Configurable Timeout** (v0.1.2+): Users can configure custom timeout values per tool in the Dify plugin configuration interface
   - **Sync Mode**: No timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
   - **Service Degradation**: On timeout or error, tools log the event and return default/empty results to ensure workflow continuity
 - **Unified Exception Handling**: Both sync and async modes have unified exception handling for service degradation, ensuring workflows continue even when individual tools fail
@@ -241,11 +253,18 @@ Example Vector DB JSON (pgvector):
 
 The plugin implements comprehensive timeout and service degradation mechanisms to ensure production stability:
 
-- **Timeout Values**:
-  - Search Memory: 60 seconds
-  - Get All Memories: 60 seconds
+- **Configurable Timeout** (v0.1.2+):
+  - All read operations (Search/Get/Get_All/History) support user-configurable timeout values
+  - Timeout parameters are available in the Dify plugin configuration interface as manual input fields
+  - If not specified, tools use default values from `constants.py`
+  - Invalid timeout values are caught and logged with a warning, defaulting to constants
+
+- **Default Timeout Values** (v0.1.2+):
+  - Search Memory: 30 seconds (reduced from 60s)
+  - Get All Memories: 30 seconds (reduced from 60s)
   - Get Memory: 30 seconds
   - Get Memory History: 30 seconds
+  - `MAX_REQUEST_TIMEOUT`: 60 seconds (reduced from 120s)
 
 - **Service Degradation**: When operations timeout or encounter errors:
   - The event is logged with full exception details
@@ -261,8 +280,8 @@ The plugin implements comprehensive timeout and service degradation mechanisms t
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/dify-plugin-mem0.git
-   cd dify-plugin-mem0
+   git clone https://github.com/beersoccer/mem0_dify_plugin.git
+   cd mem0_dify_plugin
    ```
 
 2. **Install dependencies**
@@ -290,6 +309,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.1.2 | 2025-11-21 | Configurable timeout parameters, optimized default timeouts (30s for all read ops), code quality improvements |
 | v0.1.1 | 2025-11-20 | Timeout & service degradation for async operations, robust error handling, resource management improvements, production stability fixes |
 | v0.1.0 | 2025-11-19 | Smart memory management, robust error handling for non-existent memories, race condition protection, bug fixes |
 | v0.0.9 | 2025-11-17 | Unified return format, enhanced async operations (Update/Delete/Delete_All non-blocking), standardized fields, extended constants, complete documentation |

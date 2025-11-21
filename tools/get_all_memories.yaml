@@ -65,6 +65,17 @@ parameters:
       zh_Hans: 可选的高级元数据过滤条件，JSON 字符串格式。仅在需要元数据过滤时提供。否则留空。
     llm_description: Optional advanced metadata filters as JSON string. Only provide if metadata filtering is needed. Leave empty otherwise.
     form: llm
+  - name: timeout
+    type: number
+    required: false
+    label:
+      en_US: Timeout (seconds)
+      zh_Hans: 超时时间（秒）
+    human_description:
+      en_US: Optional timeout in seconds for the get all operation (async mode only). Defaults to 30 if not specified. Only applies when async_mode=true.
+      zh_Hans: 可选，获取所有记忆操作的超时时间（秒，仅异步模式）。未指定时默认为 30 秒。仅在 async_mode=true 时生效。
+    llm_description: Optional timeout in seconds for the get all operation (async mode only). Defaults to 30 if not specified. Only applies when async_mode=true.
+    form: form
 extra:
   python:
     source: tools/get_all_memories.py

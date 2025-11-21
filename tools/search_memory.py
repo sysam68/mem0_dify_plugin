@@ -77,30 +77,45 @@ class SearchMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            # Get timeout from parameters, use default if not provided
+            timeout = tool_parameters.get("timeout")
+            if timeout is None:
+                timeout = SEARCH_OPERATION_TIMEOUT
+            else:
+                try:
+                    timeout = float(timeout)
+                except (TypeError, ValueError):
+                    logger.warning(
+                        "Invalid timeout value: %s, using default: %d",
+                        timeout,
+                        SEARCH_OPERATION_TIMEOUT,
+                    )
+                    timeout = SEARCH_OPERATION_TIMEOUT
             logger.info(
-                "Searching memories with query: %s..., user_id: %s, async_mode: %s",
+                "Searching memories with query: %s..., user_id: %s, async_mode: %s, timeout: %s",
                 query[:50],
                 user_id,
                 async_mode,
+                timeout,
             )
             # Initialize results with default value to ensure it's always defined
             results: list[dict[str, Any]] = []
             if async_mode:
-                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed here.
-                # Resources are managed at the plugin lifecycle level via AsyncLocalClient.shutdown()
+                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed.
+                # Resources are managed at plugin lifecycle level via AsyncLocalClient.shutdown()
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit to background loop and wait on future to avoid nested event loop issues
                 # ensure_bg_loop() returns a long-lived, reusable event loop
                 loop = AsyncLocalClient.ensure_bg_loop()
                 future = asyncio.run_coroutine_threadsafe(client.search(payload), loop)
                 try:
-                    results = future.result(timeout=SEARCH_OPERATION_TIMEOUT)
+                    results = future.result(timeout=timeout)
                 except FuturesTimeoutError:
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Search operation timed out after %d seconds for query: %s..., user_id: %s",
-                        SEARCH_OPERATION_TIMEOUT,
+                        "Search operation timed out after %s seconds for query: %s..., user_id: %s",
+                        timeout,
                         query[:50],
                         user_id,
                     )

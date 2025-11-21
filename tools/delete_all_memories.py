@@ -1,3 +1,5 @@
+"""Dify tool for deleting all memories from Mem0 for a specific user."""
+
 import asyncio
 import logging
 from collections.abc import Generator
@@ -13,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteAllMemoriesTool(Tool):
+    """Tool that deletes all memories for a specific user, with optional filtering."""
+
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage, None, None]:
         # Validate required user_id
         user_id = tool_parameters.get("user_id")
