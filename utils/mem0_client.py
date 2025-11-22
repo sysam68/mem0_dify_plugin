@@ -104,12 +104,6 @@ class LocalClient:
             if payload.get("run_id"):
                 kwargs["run_id"] = payload.get("run_id")
 
-        logger.info(
-            "Searching memories with query: %s..., filters: %s, limit: %s",
-            query[:50],
-            bool(kwargs.get("filters")),
-            kwargs.get("limit"),
-        )
         try:
             results = self.memory.search(query, **kwargs)
             normalized = _normalize_search_results(results)
@@ -117,7 +111,6 @@ class LocalClient:
             logger.exception("Error during memory search")
             raise
         else:
-            logger.info("Search completed, found %d results", len(normalized))
             return normalized
 
     def add(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -168,16 +161,12 @@ class LocalClient:
 
         # Use messages directly if provided; assume upstream has validated inputs
         messages = payload.get("messages")
-        user_id = kwargs.get("user_id") or payload.get("user_id")
-        msg_count = len(messages) if isinstance(messages, list) else 1
-        logger.info("Adding memory for user_id: %s, messages count: %d", user_id, msg_count)
         try:
             result = self.memory.add(messages, **kwargs)
         except Exception:
             logger.exception("Error during memory addition")
             raise
         else:
-            logger.info("Memory added successfully")
             return result
 
     def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
@@ -217,7 +206,6 @@ class LocalClient:
             kwargs["filters"] = filters
 
         # Mem0's get_all always returns {"results": [...]} format
-        logger.info("Getting all memories with filters: %s", kwargs)
         try:
             result = self.memory.get_all(**kwargs)
             memories = result.get("results", []) if isinstance(result, dict) else []
@@ -225,7 +213,6 @@ class LocalClient:
             logger.exception("Error during get_all operation")
             raise
         else:
-            logger.info("Retrieved %d memories", len(memories))
             return memories
 
     def get(self, memory_id: str) -> dict[str, Any]:
@@ -238,17 +225,12 @@ class LocalClient:
             dict: Memory object with id, memory, metadata, created_at, updated_at, etc.
 
         """
-        logger.info("Getting memory by ID: %s", memory_id)
         try:
             result = self.memory.get(memory_id)
         except Exception:
             logger.exception("Error retrieving memory %s", memory_id)
             raise
         else:
-            if result:
-                logger.info("Memory %s retrieved successfully", memory_id)
-            else:
-                logger.warning("Memory %s not found", memory_id)
             return result
 
     def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -262,14 +244,12 @@ class LocalClient:
             dict: Success message indicating the memory was updated.
 
         """
-        logger.info("Updating memory %s", memory_id)
         try:
             result = self.memory.update(memory_id, payload.get("text"))
         except Exception:
             logger.exception("Error updating memory %s", memory_id)
             raise
         else:
-            logger.info("Memory %s updated successfully", memory_id)
             return result
 
     def delete(self, memory_id: str) -> dict[str, Any]:
@@ -282,14 +262,12 @@ class LocalClient:
             dict: Success message, typically {"message": "Memory deleted successfully!"}.
 
         """
-        logger.info("Deleting memory %s", memory_id)
         try:
             result = self.memory.delete(memory_id)
         except Exception:
             logger.exception("Error deleting memory %s", memory_id)
             raise
         else:
-            logger.info("Memory %s deleted successfully", memory_id)
             return result
 
     def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -305,7 +283,6 @@ class LocalClient:
             dict: Result of the deletion operation.
 
         """
-        logger.warning("Deleting all memories with filters: %s", params)
         try:
             result = self.memory.delete_all(
                 user_id=params.get("user_id"),
@@ -316,7 +293,6 @@ class LocalClient:
             logger.exception("Error during delete_all operation")
             raise
         else:
-            logger.info("Delete all operation completed: %s", result)
             return result
 
     def history(self, memory_id: str) -> list[dict[str, Any]]:
@@ -329,14 +305,12 @@ class LocalClient:
             list[dict]: List of history records with old_memory, new_memory, event, created_at, etc.
 
         """
-        logger.info("Getting history for memory %s", memory_id)
         try:
             result = self.memory.history(memory_id)
         except Exception:
             logger.exception("Error retrieving history for memory %s", memory_id)
             raise
         else:
-            logger.info("Retrieved %d history records for memory %s", len(result), memory_id)
             return result
 
 
@@ -531,12 +505,6 @@ class AsyncLocalClient:
             if payload.get("run_id"):
                 kwargs["run_id"] = payload.get("run_id")
 
-        logger.info(
-            "Searching memories (async) with query: %s..., filters: %s, limit: %s",
-            query[:50],
-            bool(kwargs.get("filters")),
-            kwargs.get("limit"),
-        )
         try:
             async with self._semaphore:
                 results = await self.memory.search(query, **kwargs)
@@ -545,7 +513,6 @@ class AsyncLocalClient:
             logger.exception("Error during async memory search")
             raise
         else:
-            logger.info("Search completed (async), found %d results", len(normalized))
             return normalized
 
     async def add(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -603,9 +570,6 @@ class AsyncLocalClient:
         ):
             return ADD_SKIP_RESULT
 
-        user_id = kwargs.get("user_id") or payload.get("user_id")
-        msg_count = len(messages) if isinstance(messages, list) else 1
-        logger.info("Adding memory (async) for user_id: %s, messages count: %d", user_id, msg_count)
         try:
             # Limit concurrent add() to avoid exhausting DB connection pool
             async with self._semaphore:
@@ -615,7 +579,6 @@ class AsyncLocalClient:
             logger.exception("Error during async memory addition")
             raise
         else:
-            logger.info("Memory added successfully (async)")
             return result
 
     async def get_all(self, params: dict[str, Any]) -> list[dict[str, Any]]:
@@ -657,7 +620,6 @@ class AsyncLocalClient:
             kwargs["filters"] = filters
 
         # Mem0's get_all always returns {"results": [...]} format
-        logger.info("Getting all memories (async) with filters: %s", kwargs)
         try:
             async with self._semaphore:
                 result = await self.memory.get_all(**kwargs)
@@ -666,7 +628,6 @@ class AsyncLocalClient:
             logger.exception("Error during async get_all operation")
             raise
         else:
-            logger.info("Retrieved %d memories (async)", len(memories))
             return memories
 
     async def get(self, memory_id: str) -> dict[str, Any]:
@@ -679,7 +640,6 @@ class AsyncLocalClient:
             dict: Memory object with id, memory, metadata, created_at, updated_at, etc.
 
         """
-        logger.info("Getting memory (async) by ID: %s", memory_id)
         await self.create()
         try:
             async with self._semaphore:
@@ -688,10 +648,6 @@ class AsyncLocalClient:
             logger.exception("Error retrieving memory %s (async)", memory_id)
             raise
         else:
-            if result:
-                logger.info("Memory %s retrieved successfully (async)", memory_id)
-            else:
-                logger.warning("Memory %s not found (async)", memory_id)
             return result
 
     async def update(self, memory_id: str, payload: dict[str, Any]) -> dict[str, Any]:
@@ -705,7 +661,6 @@ class AsyncLocalClient:
             dict: Success message indicating the memory was updated.
 
         """
-        logger.info("Updating memory (async) %s", memory_id)
         await self.create()
         try:
             async with self._semaphore:
@@ -714,7 +669,6 @@ class AsyncLocalClient:
             logger.exception("Error updating memory %s (async)", memory_id)
             raise
         else:
-            logger.info("Memory %s updated successfully (async)", memory_id)
             return result
 
     async def delete(self, memory_id: str) -> dict[str, Any]:
@@ -727,7 +681,6 @@ class AsyncLocalClient:
             dict: Success message, typically {"message": "Memory deleted successfully!"}.
 
         """
-        logger.info("Deleting memory (async) %s", memory_id)
         await self.create()
         try:
             async with self._semaphore:
@@ -736,7 +689,6 @@ class AsyncLocalClient:
             logger.exception("Error deleting memory %s (async)", memory_id)
             raise
         else:
-            logger.info("Memory %s deleted successfully (async)", memory_id)
             return result
 
     async def delete_all(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -752,7 +704,6 @@ class AsyncLocalClient:
             dict: Result of the deletion operation.
 
         """
-        logger.warning("Deleting all memories (async) with filters: %s", params)
         await self.create()
         try:
             async with self._semaphore:
@@ -765,7 +716,6 @@ class AsyncLocalClient:
             logger.exception("Error during async delete_all operation")
             raise
         else:
-            logger.info("Delete all operation completed (async): %s", result)
             return result
 
     async def history(self, memory_id: str) -> list[dict[str, Any]]:
@@ -778,7 +728,6 @@ class AsyncLocalClient:
             list[dict]: List of history records with old_memory, new_memory, event, created_at, etc.
 
         """
-        logger.info("Getting history (async) for memory %s", memory_id)
         await self.create()
         try:
             async with self._semaphore:
@@ -787,5 +736,4 @@ class AsyncLocalClient:
             logger.exception("Error retrieving history for memory %s (async)", memory_id)
             raise
         else:
-            logger.info("Retrieved %d history records for memory %s (async)", len(result), memory_id)
             return result

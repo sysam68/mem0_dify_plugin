@@ -68,13 +68,6 @@ class GetAllMemoriesTool(Tool):
                         GET_ALL_OPERATION_TIMEOUT,
                     )
                     timeout = GET_ALL_OPERATION_TIMEOUT
-            logger.info(
-                "Getting all memories for user_id: %s, async_mode: %s, timeout: %s, params: %s",
-                user_id,
-                async_mode,
-                timeout,
-                params,
-            )
             # Initialize results with default value to ensure it's always defined
             results: list[dict[str, Any]] = []
             if async_mode:
@@ -90,7 +83,7 @@ class GetAllMemoriesTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Get all operation timed out after %s seconds for user_id: %s",
+                        "Get all operation timed out after %s seconds (async, user_id: %s)",
                         timeout,
                         user_id,
                     )
@@ -101,7 +94,7 @@ class GetAllMemoriesTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "Get all operation failed with error: %s (user_id: %s)",
+                        "Get all operation failed with error: %s (async, user_id: %s)",
                         type(e).__name__,
                         user_id,
                     )
@@ -116,13 +109,19 @@ class GetAllMemoriesTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "Get all operation failed with error: %s (user_id: %s)",
+                        "Get all operation failed with error: %s (sync, user_id: %s)",
                         type(e).__name__,
                         user_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
-            logger.info("Retrieved %d memories", len(results))
+            mode_str = "async" if async_mode else "sync"
+            logger.info(
+                "Get all memories completed (%s, found %d results, user_id: %s)",
+                mode_str,
+                len(results),
+                user_id,
+            )
 
             # JSON output
             memories = []
