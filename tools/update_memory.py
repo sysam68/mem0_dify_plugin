@@ -30,7 +30,6 @@ class UpdateMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
-            logger.info("Updating memory %s, async_mode: %s", memory_id, async_mode)
 
             # In sync mode, check if memory exists before updating
             if not async_mode:
@@ -48,7 +47,12 @@ class UpdateMemoryTool(Tool):
                 # Wrap update call in try-except to catch Mem0 internal errors
                 try:
                     result = client.update(memory_id, {"text": text})
-                    logger.info("Memory %s updated successfully", memory_id)
+                    logger.info(
+                        "Memory updated successfully (sync, memory_id: %s, new_text: %s, result: %s)",
+                        memory_id,
+                        text,
+                        result,
+                    )
                 except AttributeError:
                     # Mem0 internal error: memory was deleted between get() and update()
                     logger.warning("Memory %s not found or already deleted", memory_id)
@@ -70,7 +74,11 @@ class UpdateMemoryTool(Tool):
                 # Submit update to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.update(memory_id, {"text": text}), loop)
-                logger.info("Memory update submitted to background loop: %s", memory_id)
+                logger.info(
+                    "Memory update submitted to background loop (async, memory_id: %s, new_text: %s)",
+                    memory_id,
+                    text,
+                )
 
                 yield self.create_json_message({
                     "status": "SUCCESS",

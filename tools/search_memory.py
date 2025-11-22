@@ -91,13 +91,6 @@ class SearchMemoryTool(Tool):
                         SEARCH_OPERATION_TIMEOUT,
                     )
                     timeout = SEARCH_OPERATION_TIMEOUT
-            logger.info(
-                "Searching memories with query: %s..., user_id: %s, async_mode: %s, timeout: %s",
-                query[:50],
-                user_id,
-                async_mode,
-                timeout,
-            )
             # Initialize results with default value to ensure it's always defined
             results: list[dict[str, Any]] = []
             if async_mode:
@@ -114,7 +107,7 @@ class SearchMemoryTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Search operation timed out after %s seconds for query: %s..., user_id: %s",
+                        "Search operation timed out after %s seconds (async, query: %s..., user_id: %s)",
                         timeout,
                         query[:50],
                         user_id,
@@ -126,7 +119,7 @@ class SearchMemoryTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "Search operation failed with error: %s (query: %s..., user_id: %s)",
+                        "Search operation failed with error: %s (async, query: %s..., user_id: %s)",
                         type(e).__name__,
                         query[:50],
                         user_id,
@@ -142,14 +135,13 @@ class SearchMemoryTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "Search operation failed with error: %s (query: %s..., user_id: %s)",
+                        "Search operation failed with error: %s (sync, query: %s..., user_id: %s)",
                         type(e).__name__,
                         query[:50],
                         user_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
-            logger.info("Search completed, found %d results", len(results))
 
             # JSON output
             norm_results = []
@@ -165,6 +157,17 @@ class SearchMemoryTool(Tool):
                         "created_at": r.get("created_at", ""),
                     },
                 )
+
+            # Log search results
+            mode_str = "async" if async_mode else "sync"
+            logger.info(
+                "Search completed (%s, query: %s..., user_id: %s, found %d results, results: %s)",
+                mode_str,
+                query[:50],
+                user_id,
+                len(norm_results),
+                norm_results,
+            )
 
             yield self.create_json_message({
                 "status": "SUCCESS",
@@ -192,14 +195,22 @@ class SearchMemoryTool(Tool):
 
         except json.JSONDecodeError as e:
             # Should not happen here, but guard anyway
-            logger.exception("Error parsing JSON during search")
+            logger.exception(
+                "Error parsing JSON during search (query: %s..., user_id: %s)",
+                query[:50],
+                user_id,
+            )
             error_message = f"Error parsing JSON: {e}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to search memory: {error_message}")
         except Exception as e:
             # Catch all exceptions to ensure workflow continues
-            logger.exception("Error during memory search")
+            logger.exception(
+                "Error during memory search (query: %s..., user_id: %s)",
+                query[:50],
+                user_id,
+            )
             error_message = f"Error: {e}"
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})

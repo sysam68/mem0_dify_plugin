@@ -37,12 +37,6 @@ class GetMemoryHistoryTool(Tool):
                         HISTORY_OPERATION_TIMEOUT,
                     )
                     timeout = HISTORY_OPERATION_TIMEOUT
-            logger.info(
-                "Getting memory history for %s, async_mode: %s, timeout: %s",
-                memory_id,
-                async_mode,
-                timeout,
-            )
             # Initialize results with default value to ensure it's always defined
             results: list[dict[str, Any]] = []
             if async_mode:
@@ -58,7 +52,7 @@ class GetMemoryHistoryTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "History operation timed out after %s seconds for memory_id: %s",
+                        "History operation timed out after %s seconds (async, memory_id: %s)",
                         timeout,
                         memory_id,
                     )
@@ -69,7 +63,7 @@ class GetMemoryHistoryTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "History operation failed with error: %s (memory_id: %s)",
+                        "History operation failed with error: %s (async, memory_id: %s)",
                         type(e).__name__,
                         memory_id,
                     )
@@ -84,13 +78,12 @@ class GetMemoryHistoryTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "History operation failed with error: %s (memory_id: %s)",
+                        "History operation failed with error: %s (sync, memory_id: %s)",
                         type(e).__name__,
                         memory_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
-            logger.info("Retrieved %d history records for memory %s", len(results), memory_id)
 
             # JSON output
             history = []
@@ -106,6 +99,15 @@ class GetMemoryHistoryTool(Tool):
                     "updated_at": h.get("updated_at"),
                     "is_deleted": h.get("is_deleted", False),
                 })
+
+            # Log history information
+            mode_str = "async" if async_mode else "sync"
+            logger.info(
+                "Get memory history completed (%s, memory_id: %s, history: %s)",
+                mode_str,
+                memory_id,
+                history,
+            )
 
             yield self.create_json_message({
                 "status": "SUCCESS",

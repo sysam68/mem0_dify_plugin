@@ -37,12 +37,6 @@ class GetMemoryTool(Tool):
                         GET_OPERATION_TIMEOUT,
                     )
                     timeout = GET_OPERATION_TIMEOUT
-            logger.info(
-                "Getting memory %s, async_mode: %s, timeout: %s",
-                memory_id,
-                async_mode,
-                timeout,
-            )
             # Initialize result with default value to ensure it's always defined
             result: dict[str, Any] | None = None
             if async_mode:
@@ -58,7 +52,7 @@ class GetMemoryTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Get operation timed out after %s seconds for memory_id: %s",
+                        "Get operation timed out after %s seconds (async, memory_id: %s)",
                         timeout,
                         memory_id,
                     )
@@ -69,7 +63,7 @@ class GetMemoryTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "Get operation failed with error: %s (memory_id: %s)",
+                        "Get operation failed with error: %s (async, memory_id: %s)",
                         type(e).__name__,
                         memory_id,
                     )
@@ -84,7 +78,7 @@ class GetMemoryTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "Get operation failed with error: %s (memory_id: %s)",
+                        "Get operation failed with error: %s (sync, memory_id: %s)",
                         type(e).__name__,
                         memory_id,
                     )
@@ -99,7 +93,13 @@ class GetMemoryTool(Tool):
                     {"status": "ERROR", "messages": error_message, "results": {}})
                 yield self.create_text_message(f"Error: {error_message}")
                 return
-            logger.info("Memory %s retrieved successfully", memory_id)
+            mode_str = "async" if async_mode else "sync"
+            logger.info(
+                "Get memory completed successfully (%s, memory_id: %s, result: %s)",
+                mode_str,
+                memory_id,
+                result,
+            )
 
             yield self.create_json_message({
                 "status": "SUCCESS",
