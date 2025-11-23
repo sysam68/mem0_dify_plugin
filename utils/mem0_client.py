@@ -79,7 +79,7 @@ class LocalClient:
         Returns:
             list[dict]: List of memory search results.
 
-        """
+        """  # noqa: E501
         query = payload.get("query", "")
         filters = payload.get("filters")
         limit = payload.get("limit")
@@ -138,7 +138,7 @@ class LocalClient:
             dict: Result of the memory addition, typically with items added/updated (in "results"),
             and possibly "relations" if graph store is enabled.
 
-        """
+        """  # noqa: E501
         metadata = payload.get("metadata")
         if isinstance(metadata, str):
             try:
@@ -325,6 +325,10 @@ class AsyncLocalClient:
 
         Ensures a single process-wide instance guarded by a class-level lock,
         ignoring repeated constructor calls.
+
+        Returns:
+            AsyncLocalClient: The singleton instance of AsyncLocalClient.
+
         """
         with cls._instance_lock:
             if cls._instance is None:
@@ -332,6 +336,12 @@ class AsyncLocalClient:
         return cls._instance
 
     def __init__(self, credentials: dict[str, Any]) -> None:
+        """Initialize the AsyncLocalClient.
+
+        Args:
+            credentials (dict): Configuration for the AsyncLocalClient.
+
+        """
         # Guard against re-initializing singleton
         if getattr(self, "_initialized", False):
             logger.debug("AsyncLocalClient already initialized, skipping re-initialization")
@@ -478,7 +488,7 @@ class AsyncLocalClient:
         Returns:
             list[dict]: List of memory search results.
 
-        """
+        """  # noqa: E501
         await self.create()
         query = payload.get("query", "")
         filters = payload.get("filters")
@@ -540,7 +550,7 @@ class AsyncLocalClient:
             dict: Result of the memory addition, typically with items added/updated (in "results"),
             and possibly "relations" if graph store is enabled.
 
-        """
+        """  # noqa: E501
         await self.create()
         metadata = payload.get("metadata")
         if isinstance(metadata, str):

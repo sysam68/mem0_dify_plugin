@@ -22,6 +22,7 @@ class DeleteMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
 
             # In sync mode, check if memory exists before deleting
             if not async_mode:
@@ -40,7 +41,8 @@ class DeleteMemoryTool(Tool):
                 try:
                     result = client.delete(memory_id)
                     logger.info(
-                        "Memory deleted successfully (sync, memory_id: %s, result: %s)",
+                        "Memory deleted successfully (%s, memory_id: %s, result: %s)",
+                        mode_str,
                         memory_id,
                         result,
                     )
@@ -65,7 +67,8 @@ class DeleteMemoryTool(Tool):
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.delete(memory_id), loop)
                 logger.info(
-                    "Memory deletion submitted to background loop (async, memory_id: %s)",
+                    "Memory deletion submitted to background loop (%s, memory_id: %s)",
+                    mode_str,
                     memory_id,
                 )
 

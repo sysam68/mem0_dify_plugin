@@ -30,6 +30,7 @@ class UpdateMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
 
             # In sync mode, check if memory exists before updating
             if not async_mode:
@@ -48,7 +49,8 @@ class UpdateMemoryTool(Tool):
                 try:
                     result = client.update(memory_id, {"text": text})
                     logger.info(
-                        "Memory updated successfully (sync, memory_id: %s, new_text: %s, result: %s)",
+                        "Memory updated successfully (%s, memory_id: %s, new_text: %s, result: %s)",
+                        mode_str,
                         memory_id,
                         text,
                         result,
@@ -75,7 +77,8 @@ class UpdateMemoryTool(Tool):
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.update(memory_id, {"text": text}), loop)
                 logger.info(
-                    "Memory update submitted to background loop (async, memory_id: %s, new_text: %s)",
+                    "Memory update submitted to background loop (%s, memory_id: %s, new_text: %s)",
+                    mode_str,
                     memory_id,
                     text,
                 )

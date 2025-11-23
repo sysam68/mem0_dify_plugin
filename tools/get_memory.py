@@ -23,6 +23,7 @@ class GetMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
             # Get timeout from parameters, use default if not provided
             timeout = tool_parameters.get("timeout")
             if timeout is None:
@@ -52,8 +53,9 @@ class GetMemoryTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Get operation timed out after %s seconds (async, memory_id: %s)",
+                        "Get operation timed out after %s seconds (%s, memory_id: %s)",
                         timeout,
+                        mode_str,
                         memory_id,
                     )
                     # Service degradation: return None to trigger "not found" handling
@@ -63,8 +65,9 @@ class GetMemoryTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "Get operation failed with error: %s (async, memory_id: %s)",
+                        "Get operation failed with error: %s (%s, memory_id: %s)",
                         type(e).__name__,
+                        mode_str,
                         memory_id,
                     )
                     # Service degradation: return None to trigger "not found" handling
@@ -78,8 +81,9 @@ class GetMemoryTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "Get operation failed with error: %s (sync, memory_id: %s)",
+                        "Get operation failed with error: %s (%s, memory_id: %s)",
                         type(e).__name__,
+                        mode_str,
                         memory_id,
                     )
                     # Service degradation: return None to trigger "not found" handling
@@ -93,7 +97,6 @@ class GetMemoryTool(Tool):
                     {"status": "ERROR", "messages": error_message, "results": {}})
                 yield self.create_text_message(f"Error: {error_message}")
                 return
-            mode_str = "async" if async_mode else "sync"
             logger.info(
                 "Get memory completed successfully (%s, memory_id: %s, result: %s)",
                 mode_str,

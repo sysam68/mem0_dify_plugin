@@ -6,8 +6,6 @@
 
 A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer, providing **Local-only** tools with a unified client for self-hosted setups.
 
-![Dashboard](./_assets/dashboard.png)
-
 ---
 
 ## 🌟 Features
@@ -58,25 +56,55 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 
 ## 🚀 Quick Start
 
-### Method 1: Install from GitHub (Recommended)
+### Installation
 
+Follow the official Dify plugin installation guide:
 1. **In Dify Dashboard**
    - Go to `Settings` → `Plugins`
-   - Click `Install from GitHub`
-   - Enter your repository URL
+   - Click `Install from GitHub` or upload the plugin package
+   - Enter your repository URL or select the `.difypkg` file
    - Click `Install`
 
-2. **Configure Provider Credentials (Local)**
-   - In plugin settings, fill these JSON blocks:
-     - Required: `local_llm_json`, `local_embedder_json`, `local_vector_db_json`
-     - Optional: `local_graph_db_json`, `local_reranker_json`
+### Configuration
 
-3. **Start Using**
-   - All 8 tools are now available in your workflows!
+After installation, configure the plugin in the following order:
 
-### Method 2: Install from Package
+#### Step 1: Choose Operation Mode
 
-Download `mem0-0.1.3.difypkg` from [Releases](../../releases) and upload it manually in Dify.
+First, select the operation mode:
+
+- **Async Mode** (Recommended for Production)
+  - Set `async_mode` to `true`
+  - Supports high concurrency
+  - Write operations (Add/Update/Delete) are non-blocking and return immediately
+  - Read operations (Search/Get) wait for results with timeout protection
+  - Best for production environments with high traffic
+
+- **Sync Mode** (Recommended for Testing)
+  - Set `async_mode` to `false`
+  - All operations block until completion
+  - You can see the actual results of each memory operation immediately
+  - Best for testing and debugging
+  - **Note**: Sync mode has no timeout protection. If timeout protection is needed, use `async_mode=true`
+
+#### Step 2: Configure Models and Databases
+
+Configure the following JSON blocks in plugin settings. For detailed configuration options and supported providers, refer to the [Mem0 Official Configuration Documentation](https://docs.mem0.ai/open-source/configuration).
+
+**Required:**
+- `local_llm_json` - LLM provider configuration
+- `local_embedder_json` - Embedding model configuration
+- `local_vector_db_json` - Vector database configuration
+
+**Optional:**
+- `local_graph_db_json` - Graph database configuration (e.g., Neo4j)
+- `local_reranker_json` - Reranker configuration
+
+See the [Configuration Examples](#-configuration-examples) section below for basic JSON examples.
+
+### Start Using
+
+Once configured, all 8 tools are available in your workflows!
 
 ---
 
@@ -191,51 +219,106 @@ search(
 
 ---
 
-## 🔧 Configuration
+## 🔧 Configuration Examples
 
-### Requirements
-- Dify instance (self-hosted or cloud)
-- Python 3.12+ (for local development)
-- Dependencies: dify_plugin, httpx, openai, mem0, neo4j, psycopg2-binary
+> **📚 Reference**: For detailed configuration options and supported providers, please refer to the [Mem0 Official Configuration Documentation](https://docs.mem0.ai/open-source/configuration).
 
-### Provider Credentials (Local Only)
-- Required (paste JSON for each):
-  - `local_llm_json`
-  - `local_embedder_json`
-  - `local_vector_db_json` (e.g., pgvector or pinecone)
-- Optional:
-  - `local_graph_db_json` (Neo4j)
-  - `local_reranker_json`
+### Operation Mode
 
-### Async Mode
-- `async_mode` (boolean, default: true)
-  - When true (default):
-    - Write operations (Add/Update/Delete/Delete_All): non-blocking, return ACCEPT status immediately
-    - Read operations (Search/Get/Get_All/History): always wait for results with timeout protection (default: 30s for all read operations)
-  - When false:
-    - All operations block until completion
-    - **Note**: Sync mode has no timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
+Set `async_mode` in plugin credentials:
+- `true` (default) - Async mode, recommended for production
+- `false` - Sync mode, recommended for testing
 
-### Configurable Timeout (v0.1.2+)
-- All read operations (Search/Get/Get_All/History) now support user-configurable timeout values
-- Timeout parameters are available in the Dify plugin configuration interface as manual input fields
-- If not specified, tools use default values (30 seconds for all read operations)
-- Allows customization per tool based on specific use case requirements
+### LLM Configuration (`local_llm_json`)
 
-Example Vector DB JSON (pgvector):
+```json
+{
+  "provider": "azure_openai",
+  "config": {
+    "model": "your-deployment-name",
+    "temperature": 0.1,
+    "max_tokens": 256,
+    "azure_kwargs": {
+      "azure_deployment": "your-deployment-name",
+      "api_version": "version-to-use",
+      "azure_endpoint": "your-api-base-url",
+      "api_key": "your-api-key",
+      "default_headers": {
+        "CustomHeader": "your-custom-header"
+      }
+    }
+  }
+}
+```
+
+### Embedder Configuration (`local_embedder_json`)
+
+```json
+{
+  "provider": "azure_openai",
+  "config": {
+    "model": "your-deployment-name",
+    "azure_kwargs": {
+      "api_version": "version-to-use",
+      "azure_deployment": "your-deployment-name",
+      "azure_endpoint": "your-api-base-url",
+      "api_key": "your-api-key",
+      "default_headers": {
+        "CustomHeader": "your-custom-header"
+      }
+    }
+  }
+}
+```
+
+### Vector Store Configuration (`local_vector_db_json`)
+
 ```json
 {
   "provider": "pgvector",
   "config": {
-    "dbname": "dify",
-    "user": "postgres",
-    "password": "<password>",
-    "host": "<host>",
-    "port": "5432",
-    "sslmode": "disable"
+    "dbname": "your-vector-db-name",
+    "user": "your-vector-db-user",
+    "password": "your-vector-db-password",
+    "host": "your-vector-db-host",
+    "port": "your-vector-db-port",
+    "sslmode": "require or disable"
   }
 }
 ```
+
+### Graph Store Configuration (`local_graph_db_json`) - Optional
+
+```json
+{
+  "provider": "neo4j",
+  "config": {
+    "url": "neo4j+s://<HOST>",
+    "username": "your-graph-db-user",
+    "password": "your-graph-db-password"
+  }
+}
+```
+
+### Reranker Configuration (`local_reranker_json`) - Optional
+
+```json
+{
+  "provider": "cohere",
+  "config": {
+    "model": "your-model-name",
+    "api_key": "your-cohere-api-key",
+    "top_k": 5
+  }
+}
+```
+
+### Configurable Timeout (v0.1.2+)
+
+All read operations (Search/Get/Get_All/History) support user-configurable timeout values:
+- Timeout parameters are available in the Dify plugin configuration interface as manual input fields
+- If not specified, tools use default values (30 seconds for all read operations)
+- Allows customization per tool based on specific use case requirements
 
 ---
 
@@ -245,38 +328,27 @@ Example Vector DB JSON (pgvector):
 
 > **Note**: When using the `delete_all_memories` tool to delete memories in batch, Mem0 will automatically reset the vector index to optimize performance and reclaim space. You may see a log message like `WARNING: Resetting index mem0...` during this operation. This is a **normal and expected behavior** — the warning indicates that the vector store table is being dropped and recreated to ensure optimal query performance after bulk deletion. No action is needed from your side.
 
-### Async Mode Behavior
+### Operation Mode Behavior
 
-- **Write Operations** (Add/Update/Delete/Delete_All): In async mode, these operations return immediately with an ACCEPT status, and the actual operation is performed in the background
-- **Read Operations** (Search/Get/Get_All/History): These always wait for and return the actual results, regardless of async mode setting
-  - **Async Mode**: All async read operations have timeout mechanisms (default: 30s for all operations) to prevent indefinite hanging
-  - **Configurable Timeout** (v0.1.2+): Users can configure custom timeout values per tool in the Dify plugin configuration interface
-  - **Sync Mode**: No timeout protection (blocking calls). If timeout protection is needed, use `async_mode=true`
-  - **Service Degradation**: On timeout or error, tools log the event and return default/empty results to ensure workflow continuity
-- **Unified Exception Handling**: Both sync and async modes have unified exception handling for service degradation, ensuring workflows continue even when individual tools fail
+- **Async Mode** (`async_mode=true`, default):
+  - Write operations (Add/Update/Delete/Delete_All): Non-blocking, return ACCEPT status immediately
+  - Read operations (Search/Get/Get_All/History): Wait for results with timeout protection (default: 30s, configurable)
+  - On timeout or error: Logs event, cancels background tasks, returns default/empty results
+  - Best for production environments with high traffic
 
-### Timeout & Service Degradation
+- **Sync Mode** (`async_mode=false`):
+  - All operations block until completion
+  - You can see the actual results of each operation immediately
+  - Best for testing and debugging
+  - **Note**: No timeout protection. If timeout protection is needed, use `async_mode=true`
 
-The plugin implements comprehensive timeout and service degradation mechanisms to ensure production stability:
+### Service Degradation
 
-- **Configurable Timeout** (v0.1.2+):
-  - All read operations (Search/Get/Get_All/History) support user-configurable timeout values
-  - Timeout parameters are available in the Dify plugin configuration interface as manual input fields
-  - If not specified, tools use default values from `constants.py`
-  - Invalid timeout values are caught and logged with a warning, defaulting to constants
-
-- **Default Timeout Values** (v0.1.2+):
-  - Search Memory: 30 seconds (reduced from 60s)
-  - Get All Memories: 30 seconds (reduced from 60s)
-  - Get Memory: 30 seconds
-  - Get Memory History: 30 seconds
-  - `MAX_REQUEST_TIMEOUT`: 60 seconds (reduced from 120s)
-
-- **Service Degradation**: When operations timeout or encounter errors:
-  - The event is logged with full exception details
-  - Background tasks are cancelled to prevent resource leaks
-  - Default/empty results are returned (empty list `[]` for Search/Get_All/History, `None` for Get)
-  - Dify workflow continues execution without interruption
+When operations timeout or encounter errors:
+- The event is logged with full exception details
+- Background tasks are cancelled to prevent resource leaks (async mode only)
+- Default/empty results are returned (empty list `[]` for Search/Get_All/History, `None` for Get)
+- Dify workflow continues execution without interruption
 
 ---
 

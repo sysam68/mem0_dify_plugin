@@ -77,13 +77,15 @@ class AddMemoryTool(Tool):
                 return
 
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
             if async_mode:
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit add to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.add(payload), loop)
                 logger.info(
-                    "Memory addition submitted to background loop (async, user_id: %s)",
+                    "Memory addition submitted to background loop (%s, user_id: %s)",
+                    mode_str,
                     user_id,
                 )
 
@@ -97,7 +99,8 @@ class AddMemoryTool(Tool):
                 client = LocalClient(self.runtime.credentials)
                 result = client.add(payload)
                 logger.info(
-                    "Memory added successfully (sync, user_id: %s, result: %s)",
+                    "Memory added successfully (%s, user_id: %s, result: %s)",
+                    mode_str,
                     user_id,
                     result,
                 )

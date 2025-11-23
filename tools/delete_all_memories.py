@@ -37,13 +37,15 @@ class DeleteAllMemoriesTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
             if async_mode:
                 client = AsyncLocalClient(self.runtime.credentials)
                 # Submit delete_all to background event loop without awaiting (non-blocking)
                 loop = AsyncLocalClient.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.delete_all(params), loop)
                 logger.info(
-                    "Delete all memories submitted to background loop (async, user_id: %s)",
+                    "Delete all memories submitted to background loop (%s, user_id: %s)",
+                    mode_str,
                     user_id,
                 )
 
@@ -58,7 +60,8 @@ class DeleteAllMemoriesTool(Tool):
                 client = LocalClient(self.runtime.credentials)
                 result = client.delete_all(params)
                 logger.info(
-                    "All memories deleted successfully (sync, user_id: %s, result: %s)",
+                    "All memories deleted successfully (%s, user_id: %s, result: %s)",
+                    mode_str,
                     user_id,
                     result,
                 )
