@@ -77,6 +77,7 @@ class SearchMemoryTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
             # Get timeout from parameters, use default if not provided
             timeout = tool_parameters.get("timeout")
             if timeout is None:
@@ -107,8 +108,9 @@ class SearchMemoryTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Search operation timed out after %s seconds (async, query: %s..., user_id: %s)",
+                        "Search operation timed out after %s seconds (%s, query: %s..., user_id: %s)",
                         timeout,
+                        mode_str,
                         query[:50],
                         user_id,
                     )
@@ -119,8 +121,9 @@ class SearchMemoryTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "Search operation failed with error: %s (async, query: %s..., user_id: %s)",
+                        "Search operation failed with error: %s (%s, query: %s..., user_id: %s)",
                         type(e).__name__,
+                        mode_str,
                         query[:50],
                         user_id,
                     )
@@ -135,8 +138,9 @@ class SearchMemoryTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "Search operation failed with error: %s (sync, query: %s..., user_id: %s)",
+                        "Search operation failed with error: %s (%s, query: %s..., user_id: %s)",
                         type(e).__name__,
+                        mode_str,
                         query[:50],
                         user_id,
                     )
@@ -159,7 +163,6 @@ class SearchMemoryTool(Tool):
                 )
 
             # Log search results
-            mode_str = "async" if async_mode else "sync"
             logger.info(
                 "Search completed (%s, query: %s..., user_id: %s, found %d results, results: %s)",
                 mode_str,

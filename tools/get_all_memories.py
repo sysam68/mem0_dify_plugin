@@ -54,6 +54,7 @@ class GetAllMemoriesTool(Tool):
 
         try:
             async_mode = is_async_mode(self.runtime.credentials)
+            mode_str = "async" if async_mode else "sync"
             # Get timeout from parameters, use default if not provided
             timeout = tool_parameters.get("timeout")
             if timeout is None:
@@ -83,8 +84,9 @@ class GetAllMemoriesTool(Tool):
                     # Cancel the future to prevent the background task from hanging
                     future.cancel()
                     logger.exception(
-                        "Get all operation timed out after %s seconds (async, user_id: %s)",
+                        "Get all operation timed out after %s seconds (%s, user_id: %s)",
                         timeout,
+                        mode_str,
                         user_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue
@@ -94,8 +96,9 @@ class GetAllMemoriesTool(Tool):
                     # SSL errors, authentication failures, etc.) to ensure service degradation
                     # works for all failure scenarios, not just timeouts
                     logger.exception(
-                        "Get all operation failed with error: %s (async, user_id: %s)",
+                        "Get all operation failed with error: %s (%s, user_id: %s)",
                         type(e).__name__,
+                        mode_str,
                         user_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue
@@ -109,13 +112,13 @@ class GetAllMemoriesTool(Tool):
                 except Exception as e:
                     # Catch all exceptions for sync mode to ensure service degradation
                     logger.exception(
-                        "Get all operation failed with error: %s (sync, user_id: %s)",
+                        "Get all operation failed with error: %s (%s, user_id: %s)",
                         type(e).__name__,
+                        mode_str,
                         user_id,
                     )
                     # Service degradation: return empty results to allow workflow to continue
                     results = []
-            mode_str = "async" if async_mode else "sync"
             logger.info(
                 "Get all memories completed (%s, found %d results, user_id: %s)",
                 mode_str,

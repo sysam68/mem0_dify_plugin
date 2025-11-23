@@ -1,17 +1,10 @@
-# Mem0 Dify Plugin v0.1.2 - 安装指南
+# Mem0 Dify Plugin v0.1.3 - 安装指南
 
 ## 📦 安装步骤
 
-### 1. 获取插件包
+### 1. 安装插件
 
-插件已打包为 `.difypkg` 文件（版本号以实际发布为准）：
-- **文件名**: `mem0-0.1.2.difypkg`
-- **大小**: ~600KB
-- **位置**: Releases 页面
-
-### 2. 上传到 Dify
-
-#### 方法 A：通过 Dify 管理界面（推荐）
+按照 Dify 官方插件安装指南进行安装：
 
 1. **登录 Dify**
    - 访问你的 Dify 实例（自建或 Dify 云）
@@ -21,54 +14,133 @@
    - 导航到 **Settings** → **Plugins**
    - 或直接访问 `/plugins` 路径
 
-3. **上传插件**
-   - 点击 **"Upload Plugin"** 或 **"安装插件"** 按钮
-   - 选择 `mem0-0.1.2.difypkg` 文件
+3. **安装插件**
+   - 点击 **"Install from GitHub"** 或 **"上传插件"** 按钮
+   - 如果从 GitHub 安装：输入仓库 URL
+   - 如果从包安装：选择 `mem0-0.1.3.difypkg` 文件
    - 等待上传和安装完成
 
-4. **配置本地模式凭证**
-   - 安装完成后，点击插件的配置按钮
-   - 在 Provider 凭证中填写以下 JSON：
-     - 必填：`local_llm_json`、`local_embedder_json`、`local_vector_db_json`
-     - 可选：`local_graph_db_json`、`local_reranker_json`
-   - 保存配置
+### 2. 配置插件
 
-#### 方法 B：使用 Dify CLI（如果可用）
+安装完成后，按照以下步骤配置插件：
 
-```bash
-# 如果你有 dify-cli 工具
-dify plugin install mem0-0.1.2.difypkg
-```
+#### 步骤 1：选择运行模式
+
+首先选择插件的运行模式：
+
+- **异步模式**（推荐用于生产环境）
+  - 设置 `async_mode` 为 `true`（默认值）
+  - 支持高并发
+  - 写操作（Add/Update/Delete）非阻塞，立即返回
+  - 读操作（Search/Get）等待结果，具有超时保护
+  - 适合生产环境的高流量场景
+
+- **同步模式**（推荐用于测试环境）
+  - 设置 `async_mode` 为 `false`
+  - 所有操作阻塞直到完成
+  - 可以立即看到每次记忆操作的实际返回结果
+  - 适合测试和调试
+  - **注意**：同步模式没有超时保护。如果需要超时保护，请使用 `async_mode=true`
+
+#### 步骤 2：配置模型和数据库
+
+在插件设置中配置以下 JSON 块。详细的配置选项和支持的提供者，请参考 [Mem0 官方配置文档](https://docs.mem0.ai/open-source/configuration)。
+
+**必填项：**
+- `local_llm_json` - LLM 提供者配置
+- `local_embedder_json` - 嵌入模型配置
+- `local_vector_db_json` - 向量数据库配置
+
+**可选项：**
+- `local_graph_db_json` - 图数据库配置（如 Neo4j）
+- `local_reranker_json` - 重排序器配置
 
 ---
 
-## 🔧 本地配置示例
+## 🔧 配置示例
 
-### 示例：pgvector（推荐在 `local_vector_db_json` 中设置维度）
-```json
-{
-  "provider": "pgvector",
-  "config": {
-    "connection_string": "postgresql://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require",
-    "collection_name": "mem0",
-    "embedding_model_dims": 1536,
-    "metric": "cosine"
-  }
-}
-```
+> **📚 参考文档**：详细的配置选项和支持的提供者，请参考 [Mem0 官方配置文档](https://docs.mem0.ai/open-source/configuration)。
 
-### 示例：Azure OpenAI 向量模型（`local_embedder_json`）
+### LLM 配置 (`local_llm_json`)
+
 ```json
 {
   "provider": "azure_openai",
   "config": {
-    "model": "text-embedding-3-small",
+    "model": "your-deployment-name",
+    "temperature": 0.1,
+    "max_tokens": 256,
     "azure_kwargs": {
-      "api_version": "2024-10-21",
-      "azure_deployment": "text-embedding-3-small",
-      "azure_endpoint": "https://<your-endpoint>.cognitiveservices.azure.com/",
-      "api_key": "<your-azure-key>"
+      "azure_deployment": "your-deployment-name",
+      "api_version": "version-to-use",
+      "azure_endpoint": "your-api-base-url",
+      "api_key": "your-api-key",
+      "default_headers": {
+        "CustomHeader": "your-custom-header"
+      }
     }
+  }
+}
+```
+
+### Embedder 配置 (`local_embedder_json`)
+
+```json
+{
+  "provider": "azure_openai",
+  "config": {
+    "model": "your-deployment-name",
+    "azure_kwargs": {
+      "api_version": "version-to-use",
+      "azure_deployment": "your-deployment-name",
+      "azure_endpoint": "your-api-base-url",
+      "api_key": "your-api-key",
+      "default_headers": {
+        "CustomHeader": "your-custom-header"
+      }
+    }
+  }
+}
+```
+
+### Vector Store 配置 (`local_vector_db_json`)
+
+```json
+{
+  "provider": "pgvector",
+  "config": {
+    "dbname": "your-vector-db-name",
+    "user": "your-vector-db-user",
+    "password": "your-vector-db-password",
+    "host": "your-vector-db-host",
+    "port": "your-vector-db-port",
+    "sslmode": "require or disable"
+  }
+}
+```
+
+### Graph Store 配置 (`local_graph_db_json`) - 可选
+
+```json
+{
+  "provider": "neo4j",
+  "config": {
+    "url": "neo4j+s://<HOST>",
+    "username": "your-graph-db-user",
+    "password": "your-graph-db-password"
+  }
+}
+```
+
+### Reranker 配置 (`local_reranker_json`) - 可选
+
+```json
+{
+  "provider": "cohere",
+  "config": {
+    "model": "your-model-name",
+    "api_key": "your-cohere-api-key",
+    "top_k": 5
   }
 }
 ```
@@ -77,11 +149,11 @@ dify plugin install mem0-0.1.2.difypkg
 
 ## ✅ 验证安装
 
-安装完成后，你应该能看到以下 8 个工具：
+配置完成后，你应该能在 Dify 工作流中使用以下 8 个工具：
 
 ### 核心功能工具
-1. ✅ **Add Memory** - 智能管理记忆（添加/更新/删除，异步入队）
-2. ✅ **Search Memory** - 搜索记忆（本地模式过滤器与 top_k）
+1. ✅ **Add Memory** - 智能管理记忆（添加/更新/删除）
+2. ✅ **Search Memory** - 搜索记忆（支持过滤器和 top_k）
 3. ✅ **Get All Memories** - 获取所有记忆
 4. ✅ **Get Memory** - 获取单条记忆详情
 5. ✅ **Update Memory** - 更新记忆
@@ -112,7 +184,7 @@ dify plugin install mem0-0.1.2.difypkg
 }
 ```
 
-### 测试 3：使用过滤器（本地模式）
+### 测试 3：使用过滤器
 ```json
 {
   "query": "user preferences",
@@ -134,11 +206,12 @@ cd <your-plugin-directory>
 ```
 
 ### 问题 2：工具无法使用
-**原因**：本地 JSON 配置缺失或无效
+**原因**：配置缺失或无效
 **解决**：
-1. 确认已填写必填项：`local_llm_json`、`local_embedder_json`、`local_vector_db_json`
-2. 检查 JSON 结构是否为 `{ "provider": ..., "config": { ... } }`
-3. 对于 pgvector，优先提供可用的 `connection_string`
+1. 确认已选择运行模式（`async_mode`）
+2. 确认已填写必填项：`local_llm_json`、`local_embedder_json`、`local_vector_db_json`
+3. 检查 JSON 结构是否为 `{ "provider": ..., "config": { ... } }`
+4. 验证所有 API keys 和数据库连接信息是否正确
 
 ### 问题 3：过滤器 JSON 报错
 **原因**：JSON 格式错误
@@ -179,20 +252,25 @@ cd <your-plugin-directory>
 
 3. **安装新版本**
    - 按照上述步骤安装 v0.1.3
-   - 重新配置本地 JSON 凭证（LLM/Embedder/Vector DB）
+   - 重新配置运行模式和所有 JSON 凭证
 
 4. **验证功能**
    - 测试 8 个工具
    - 验证过滤器与 `top_k`
-   - 验证 `Add Memory` 异步入队是否正常
+   - 根据选择的模式验证操作行为
 
-### 说明
-- 插件仅支持 **Local-only** 模式（无 SaaS/API 版本参数）
-- `Add Memory` 默认非阻塞（异步入队）；紧接着的搜索可能短暂不可见（最终一致）
-- 插件内部使用单进程级后台事件循环并在退出时优雅清理（atexit/SIGTERM/SIGINT）
-- 运行模式（async_mode，默认开启 true）：
-  - async_mode=true：Add 异步入队非阻塞；Search 始终等待结果
-  - async_mode=false：所有操作（Add/Search/Get/Update/Delete/History）均阻塞直至完成
+### 运行模式说明
+
+- **异步模式** (`async_mode=true`，默认)：
+  - 写操作（Add/Update/Delete/Delete_All）：非阻塞，立即返回 ACCEPT 状态
+  - 读操作（Search/Get/Get_All/History）：等待结果，具有超时保护（默认 30 秒）
+  - 适合生产环境，支持高并发
+
+- **同步模式** (`async_mode=false`)：
+  - 所有操作阻塞直到完成
+  - 可以立即看到每次操作的实际返回结果
+  - 适合测试和调试
+  - **注意**：同步模式没有超时保护。如果需要超时保护，请使用 `async_mode=true`
 
 ---
 
@@ -232,55 +310,13 @@ cd <your-plugin-directory>
 3. **性能优化**
    - 使用 `top_k/limit` 控制返回数量（默认 5）
    - 合理使用过滤器减少查询范围
-   - 插件内部使用单进程级后台事件循环与信号量限制并发（v0.1.3+：`MAX_CONCURRENT_MEMORY_OPERATIONS` 默认 40）
-   - 进程退出时会优雅停止后台 loop
-   - pgvector 连接池自动配置（v0.1.3+）：最小连接数 10，最大连接数 40，确保有足够的数据库连接支持高并发场景
+   - pgvector 连接池自动配置：最小连接数 10，最大连接数 40，支持高并发场景
 
-4. **异步模式（v0.1.1+）**
-   - `async_mode` 默认为 true（异步模式）
-   - 异步模式下：
-     - 写操作（Add/Update/Delete/Delete_All）非阻塞，立即返回 ACCEPT 状态
-     - 读操作（Search/Get/Get_All/History）等待结果返回，并具有超时保护机制
-     - 超时设置（v0.1.2+）：所有读操作默认为 30 秒（Search/Get_All 从 60 秒降低）
-     - 超时或错误时，工具会记录日志并返回默认/空结果，确保工作流继续执行
-   - 同步模式下：
-     - 所有操作阻塞直至完成
-     - **注意**：同步模式没有超时保护（阻塞调用）。如果需要超时保护，请使用 `async_mode=true`
-
-5. **数据库连接池（v0.1.3+）**
-   - pgvector 连接池自动配置：最小连接数 10，最大连接数 40
-   - 连接池大小与 `MAX_CONCURRENT_MEMORY_OPERATIONS`（40）对齐，确保有足够的数据库连接支持并发操作
-   - 如果需要在 pgvector 配置中显式设置 `minconn` 或 `maxconn`，这些值将被使用而不是默认值
-
-6. **PGVector 配置优化（v0.1.3+）**
-   - 支持三种连接方式的优先级处理：
-     1. `connection_pool`（最高优先级）- psycopg2 连接池对象
-     2. `connection_string`（第二优先级）- PostgreSQL 连接字符串
-     3. 离散参数（最低优先级）- user, password, host, port, dbname, sslmode
-   - 如果提供离散参数，插件会自动构建 `connection_string` 并清理冗余参数
-   - 符合 Mem0 官方文档的配置规范
-
-7. **可配置超时（v0.1.2+）**
-   - 所有读操作（Search/Get/Get_All/History）现在支持用户可配置的超时值
+4. **可配置超时（v0.1.2+）**
+   - 所有读操作（Search/Get/Get_All/History）支持用户可配置的超时值
    - 超时参数在 Dify 插件配置界面中作为手动输入字段提供
-   - 如果未指定，工具使用 `constants.py` 中的默认值
+   - 如果未指定，工具使用默认值（30 秒）
    - 无效的超时值会被捕获并记录警告，回退到默认值
-
-8. **超时与服务降级（v0.1.1+）**
-   - **异步模式**：所有异步读操作都配备了超时保护机制，防止工具无限期挂起
-   - **同步模式**：没有超时保护（阻塞调用）。如果需要超时保护，请使用 `async_mode=true`
-   - **默认超时值（v0.1.2+）**：
-     - Search Memory: 30 秒（从 60 秒降低）
-     - Get All Memories: 30 秒（从 60 秒降低）
-     - Get Memory: 30 秒
-     - Get Memory History: 30 秒
-     - `MAX_REQUEST_TIMEOUT`: 60 秒（从 120 秒降低）
-   - 当操作超时或遇到错误时：
-     - 事件会被记录到日志中，包含完整的异常详情
-     - 后台任务会被取消，防止资源泄漏（仅异步模式）
-     - 返回默认/空结果（Search/Get_All/History 返回空列表 `[]`，Get 返回 `None`）
-     - Dify 工作流会继续执行，不会中断
-   - **统一异常处理**：同步和异步模式都实现了统一的异常处理机制，确保工作流在工具失败时仍能继续执行
 
 ---
 
