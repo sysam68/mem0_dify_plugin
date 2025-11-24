@@ -9,7 +9,10 @@ from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import ADD_ACCEPT_RESULT, ADD_SKIP_RESULT
 from utils.logger import get_logger
-from utils.mem0_client import AsyncLocalClient, LocalClient
+from utils.mem0_client import (
+    get_async_local_client,
+    get_local_client,
+)
 
 logger = get_logger(__name__)
 
@@ -79,9 +82,9 @@ class AddMemoryTool(Tool):
             async_mode = is_async_mode(self.runtime.credentials)
             mode_str = "async" if async_mode else "sync"
             if async_mode:
-                client = AsyncLocalClient(self.runtime.credentials)
+                client = get_async_local_client(self.runtime.credentials)
                 # Submit add to background event loop without awaiting (non-blocking)
-                loop = AsyncLocalClient.ensure_bg_loop()
+                loop = client.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.add(payload), loop)
                 logger.info(
                     "Memory addition submitted to background loop (%s, user_id: %s)",
@@ -96,7 +99,7 @@ class AddMemoryTool(Tool):
                 })
                 yield self.create_text_message("Asynchronous memory addition has been accepted.")
             else:
-                client = LocalClient(self.runtime.credentials)
+                client = get_local_client(self.runtime.credentials)
                 result = client.add(payload)
                 logger.info(
                     "Memory added successfully (%s, user_id: %s, result: %s)",

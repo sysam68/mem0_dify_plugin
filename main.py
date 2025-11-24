@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import atexit
 import contextlib
 import os
@@ -15,7 +16,7 @@ os.environ.setdefault("DO_NOT_TRACK", "1")
 from dify_plugin import DifyPluginEnv, Plugin
 from utils.constants import MAX_REQUEST_TIMEOUT
 from utils.logger import get_logger
-from utils.mem0_client import AsyncLocalClient
+from utils.mem0_client import AsyncLocalClient, _async_client
 
 logger = get_logger(__name__)
 
@@ -23,8 +24,13 @@ plugin = Plugin(DifyPluginEnv(MAX_REQUEST_TIMEOUT=MAX_REQUEST_TIMEOUT))
 
 def _graceful_shutdown() -> None:
     logger.info("Initiating graceful shutdown of Mem0 plugin")
-    with contextlib.suppress(Exception):
-        AsyncLocalClient.shutdown(timeout=3.0)
+    # Cleanup async client resources before shutting down event loop
+    if _async_client is not None:
+        loop = AsyncLocalClient._bg_loop  # noqa: SLF001
+        if loop is not None and loop.is_running():
+            fut = asyncio.run_coroutine_threadsafe(_async_client.aclose(), loop)
+            fut.result(timeout=2.0)
+    AsyncLocalClient.shutdown(timeout=3.0)
     logger.info("Graceful shutdown completed")
 
 atexit.register(_graceful_shutdown)

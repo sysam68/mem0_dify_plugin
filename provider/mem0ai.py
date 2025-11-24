@@ -12,7 +12,10 @@ from dify_plugin import ToolProvider
 from dify_plugin.errors.tool import ToolProviderCredentialValidationError
 from utils.config_builder import is_async_mode
 from utils.logger import get_logger
-from utils.mem0_client import AsyncLocalClient, LocalClient
+from utils.mem0_client import (
+    get_async_local_client,
+    get_local_client,
+)
 
 logger = get_logger(__name__)
 
@@ -31,15 +34,15 @@ class Mem0Provider(ToolProvider):
             mode = "async" if async_mode else "sync"
             logger.info("Validating credentials in %s mode", mode)
             if async_mode:
-                client = AsyncLocalClient(credentials)
-                loop = AsyncLocalClient.ensure_bg_loop()
+                client = get_async_local_client(credentials)
+                loop = client.ensure_bg_loop()
                 # Perform a small no-op search to validate providers
                 _ = asyncio.run_coroutine_threadsafe(
                     client.search({"query": "test", "user_id": "validation_test"}),
                     loop,
                 ).result()
             else:
-                client = LocalClient(credentials)
+                client = get_local_client(credentials)
                 _ = client.search({"query": "test", "user_id": "validation_test"})
             logger.info("Credentials validated successfully")
         except Exception as e:

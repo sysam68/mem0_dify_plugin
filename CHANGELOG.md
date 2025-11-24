@@ -1,5 +1,41 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.4 (2025-11-23)
+
+### 🔍 Logging Investigation & Documentation Update
+
+This release documents logging-related investigations and discussions, with no code changes.
+
+#### Highlights
+- **Logging Issue Investigation**: Identified and documented logging output behavior
+  - Discovered that logs may appear twice in command line output (JSON format from Dify plugin handler and standard format from Python root logger)
+  - Identified Unicode encoding in JSON format logs (Chinese characters displayed as `\uXXXX` format)
+  - Investigated potential solutions including disabling logger propagation and custom formatters
+- **Documentation Updates**: Updated all markdown files to reflect current version and maintain consistency
+
+#### 🔧 Technical Details
+- **Logging Behavior Analysis**:
+  - Dify's `plugin_logger_handler` outputs logs in JSON format: `{"event": "log", "data": {"level": "INFO", "message": "...", "timestamp": ...}}`
+  - Python's root logger may also output logs in standard format: `INFO:tools.update_memory:...`
+  - This can result in duplicate log output when logger propagation is enabled
+  - JSON format uses `ensure_ascii=True` by default, causing Unicode characters to be encoded as `\uXXXX`
+- **Investigation Notes**:
+  - Considered setting `logger.propagate = False` to prevent duplicate logs
+  - Considered custom formatter with standard format and timestamp
+  - Current implementation uses Dify's official plugin logger handler as-is
+
+#### ⚠️ Known Issues
+- Logs may appear twice in command line output (JSON format + standard format)
+- JSON format logs display Chinese characters as Unicode escape sequences (`\uXXXX`)
+- These are framework-level behaviors from Dify's plugin logger handler
+
+#### 📝 Notes
+- No code changes in this release
+- Documentation updated to maintain consistency across all markdown files
+- Version number incremented to 0.1.4
+
+---
+
 ## Version 0.1.3 (2025-11-22)
 
 ### 🎯 Logging, Configuration & Database Connection Pool Optimization

@@ -10,7 +10,10 @@ from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import GET_OPERATION_TIMEOUT
 from utils.logger import get_logger
-from utils.mem0_client import AsyncLocalClient, LocalClient
+from utils.mem0_client import (
+    get_async_local_client,
+    get_local_client,
+)
 
 logger = get_logger(__name__)
 
@@ -41,11 +44,11 @@ class GetMemoryTool(Tool):
             # Initialize result with default value to ensure it's always defined
             result: dict[str, Any] | None = None
             if async_mode:
-                # Note: AsyncLocalClient is a singleton, so no explicit resource cleanup needed.
-                # Resources are managed at plugin lifecycle level via AsyncLocalClient.shutdown()
-                client = AsyncLocalClient(self.runtime.credentials)
+                # Note: get_async_local_client() reuses instances when config is unchanged.
+                # Resources are managed at plugin lifecycle level via shutdown()
+                client = get_async_local_client(self.runtime.credentials)
                 # ensure_bg_loop() returns a long-lived, reusable event loop
-                loop = AsyncLocalClient.ensure_bg_loop()
+                loop = client.ensure_bg_loop()
                 future = asyncio.run_coroutine_threadsafe(client.get(memory_id), loop)
                 try:
                     result = future.result(timeout=timeout)
@@ -75,7 +78,7 @@ class GetMemoryTool(Tool):
             else:
                 # Sync mode: no timeout protection (blocking call)
                 # If timeout protection is needed, use async_mode=true
-                client = LocalClient(self.runtime.credentials)
+                client = get_local_client(self.runtime.credentials)
                 try:
                     result = client.get(memory_id)
                 except Exception as e:

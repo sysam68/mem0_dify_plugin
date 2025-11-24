@@ -7,7 +7,10 @@ from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import UPDATE_ACCEPT_RESULT
 from utils.logger import get_logger
-from utils.mem0_client import AsyncLocalClient, LocalClient
+from utils.mem0_client import (
+    get_async_local_client,
+    get_local_client,
+)
 
 logger = get_logger(__name__)
 
@@ -34,7 +37,7 @@ class UpdateMemoryTool(Tool):
 
             # In sync mode, check if memory exists before updating
             if not async_mode:
-                client = LocalClient(self.runtime.credentials)
+                client = get_local_client(self.runtime.credentials)
                 # Check if memory exists
                 existing = client.get(memory_id)
                 if not existing or not isinstance(existing, dict):
@@ -72,9 +75,9 @@ class UpdateMemoryTool(Tool):
                 yield self.create_text_message(
                     f"Memory {memory_id} updated to '{text}' successfully!")
             else:
-                client = AsyncLocalClient(self.runtime.credentials)
+                client = get_async_local_client(self.runtime.credentials)
                 # Submit update to background event loop without awaiting (non-blocking)
-                loop = AsyncLocalClient.ensure_bg_loop()
+                loop = client.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.update(memory_id, {"text": text}), loop)
                 logger.info(
                     "Memory update submitted to background loop (%s, memory_id: %s, new_text: %s)",
