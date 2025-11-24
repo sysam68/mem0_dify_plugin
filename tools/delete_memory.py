@@ -9,7 +9,10 @@ from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import DELETE_ACCEPT_RESULT
 from utils.logger import get_logger
-from utils.mem0_client import AsyncLocalClient, LocalClient
+from utils.mem0_client import (
+    get_async_local_client,
+    get_local_client,
+)
 
 logger = get_logger(__name__)
 
@@ -26,7 +29,7 @@ class DeleteMemoryTool(Tool):
 
             # In sync mode, check if memory exists before deleting
             if not async_mode:
-                client = LocalClient(self.runtime.credentials)
+                client = get_local_client(self.runtime.credentials)
                 # Check if memory exists
                 existing = client.get(memory_id)
                 if not existing or not isinstance(existing, dict):
@@ -62,9 +65,9 @@ class DeleteMemoryTool(Tool):
                 })
                 yield self.create_text_message(f"Memory {memory_id} deleted successfully!")
             else:
-                client = AsyncLocalClient(self.runtime.credentials)
+                client = get_async_local_client(self.runtime.credentials)
                 # Submit delete to background event loop without awaiting (non-blocking)
-                loop = AsyncLocalClient.ensure_bg_loop()
+                loop = client.ensure_bg_loop()
                 asyncio.run_coroutine_threadsafe(client.delete(memory_id), loop)
                 logger.info(
                     "Memory deletion submitted to background loop (%s, memory_id: %s)",

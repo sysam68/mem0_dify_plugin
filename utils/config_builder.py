@@ -13,7 +13,9 @@ Each is expected to be a JSON object with at least {"provider": ..., "config": {
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
+import threading
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -202,56 +204,88 @@ def _normalize_pgvector_config(config: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+# Cache for built configurations to avoid redundant logging
+_built_config_cache: dict[str, dict[str, Any]] = {}
+_build_config_lock = threading.Lock()
+
+
 def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
     """Construct mem0 local config dict from simplified JSON credential blocks.
 
     Required: local_llm_json, local_embedder_json, local_vector_db_json
     Optional: local_reranker_json, local_graph_db_json
     """
-    logger.info("Building Mem0 local configuration from credentials")
-    llm = _parse_json_block(credentials.get("local_llm_json"), "local_llm_json")
-    embedder = _parse_json_block(credentials.get("local_embedder_json"), "local_embedder_json")
-    vector_store = _parse_json_block(
-        credentials.get("local_vector_db_json"), "local_vector_db_json",
-    )
+    # Create a cache key from credentials to detect if config was already built
+    try:
+        cred_str = json.dumps(credentials, sort_keys=True)
+        cache_key = hashlib.md5(cred_str.encode()).hexdigest()  # noqa: S324
+    except Exception:  # noqa: BLE001
+        # If serialization fails, don't cache
+        cache_key = None
 
-    if llm is None:
-        msg = "LLM configuration (local_llm_json) is required in Local mode"
-        _raise_config_error(msg)
-    if embedder is None:
-        msg = "Embedder configuration (local_embedder_json) is required in Local mode"
-        _raise_config_error(msg)
-    if vector_store is None:
-        msg = "Vector Database configuration (local_vector_db_json) is required in Local mode"
-        _raise_config_error(msg)
+    # Check cache first
+    if cache_key and cache_key in _built_config_cache:
+        return _built_config_cache[cache_key]
 
-    # Normalize pgvector config shape if necessary
-    if (
-        vector_store.get("provider") == "pgvector"
-        and isinstance(vector_store.get("config"), dict)
-    ):
-        logger.debug("Normalizing pgvector configuration")
-        vector_store["config"] = _normalize_pgvector_config(
-            vector_store["config"],
-        )  # type: ignore[index]
+    # Build new config
+    with _build_config_lock:
+        # Double-check after acquiring lock
+        if cache_key and cache_key in _built_config_cache:
+            return _built_config_cache[cache_key]
 
-    reranker = _parse_json_block(credentials.get("local_reranker_json"), "local_reranker_json")
-    graph_store = _parse_json_block(credentials.get("local_graph_db_json"), "local_graph_db_json")
+        logger.info("Building Mem0 local configuration from credentials")
+        llm = _parse_json_block(credentials.get("local_llm_json"), "local_llm_json")
+        embedder = _parse_json_block(credentials.get("local_embedder_json"), "local_embedder_json")
+        vector_store = _parse_json_block(
+            credentials.get("local_vector_db_json"), "local_vector_db_json",
+        )
 
-    config: dict[str, Any] = {
-        "llm": llm,
-        "embedder": embedder,
-        "vector_store": vector_store,
-    }
-    if reranker:
-        config["reranker"] = reranker
-        logger.debug("Reranker configuration included")
-    if graph_store:
-        config["graph_store"] = graph_store
-        logger.debug("Graph store configuration included")
+        if llm is None:
+            msg = "LLM configuration (local_llm_json) is required in Local mode"
+            _raise_config_error(msg)
+        if embedder is None:
+            msg = "Embedder configuration (local_embedder_json) is required in Local mode"
+            _raise_config_error(msg)
+        if vector_store is None:
+            msg = "Vector Database configuration (local_vector_db_json) is required in Local mode"
+            _raise_config_error(msg)
 
-    logger.info("Mem0 local configuration built successfully")
-    return config
+        # Normalize pgvector config shape if necessary
+        if (
+            vector_store.get("provider") == "pgvector"
+            and isinstance(vector_store.get("config"), dict)
+        ):
+            logger.debug("Normalizing pgvector configuration")
+            vector_store["config"] = _normalize_pgvector_config(
+                vector_store["config"],
+            )  # type: ignore[index]
+
+        reranker = _parse_json_block(
+            credentials.get("local_reranker_json"), "local_reranker_json",
+        )
+        graph_store = _parse_json_block(
+            credentials.get("local_graph_db_json"), "local_graph_db_json",
+        )
+
+        config: dict[str, Any] = {
+            "llm": llm,
+            "embedder": embedder,
+            "vector_store": vector_store,
+        }
+        if reranker:
+            config["reranker"] = reranker
+            logger.debug("Reranker configuration included")
+        if graph_store:
+            config["graph_store"] = graph_store
+            logger.debug("Graph store configuration included")
+
+        logger.info("Mem0 local configuration built successfully")
+
+        # Cache the config if we have a valid cache key
+        if cache_key:
+            _built_config_cache[cache_key] = config
+
+        return config
 
 
 def is_async_mode(credentials: dict[str, Any]) -> bool:
