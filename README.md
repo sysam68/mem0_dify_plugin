@@ -425,14 +425,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgments
-
-- [Dify](https://dify.ai) - AI application development platform
-- [Mem0 AI](https://mem0.ai) - Intelligent memory layer for AI
-- Built with ❤️ using Dify Plugin SDK
-
----
-
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](../../issues)
@@ -447,7 +439,12 @@ If you find this plugin useful, please give it a ⭐ on GitHub!
 
 ---
 
-### 🌟 Acknowledgments and Origin
+## 🙏 Acknowledgments
+
+- [Dify](https://dify.ai) - AI application development platform
+- [Mem0 AI](https://mem0.ai) - Intelligent memory layer for AI
+- [Dify Plugin SDK](https://docs.dify.ai/plugin-dev-en/0111-getting-started-dify-plugin) - Plugin development framework
+- [Original Project](https://github.com/Feversun/dify-plugin-mem0) - Original dify-plugin-mem0 repository
 
 This project is a **deeply modified and enhanced** version of the excellent [dify-plugin-mem0](https://github.com/Feversun/dify-plugin-mem0) project by **yevanchen**.
 
@@ -458,5 +455,3 @@ I sincerely appreciate the foundational work and outstanding contribution of the
 The original project primarily supported Mem0 platform (SaaS mode) and synchronous request handling. This project has been fully refactored to include:
 * **Local Mode**: Supports configuring and running the user's own LLM, embedding models, vector databases (e.g., pgvector/Milvus), graph databases, and more.
 * **Asynchronous Support**: Utilizes asynchronous request handling, significantly improving performance and concurrency.
-
-[Original Project Repository Link](https://github.com/Feversun/dify-plugin-mem0)
