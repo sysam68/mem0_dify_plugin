@@ -1,9 +1,9 @@
 mem0ai
-openai
-azure-identity
+pydantic
 langchain-neo4j
 rank-bm25
 psycopg2-binary
 transformers
 torch
 dify_plugin
+python-dotenv

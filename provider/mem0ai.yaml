@@ -1,12 +1,12 @@
 identity:
-  author: beersoccer
-  name: mem0ai
+  author: sysam68
+  name: mem0ai-local
   label:
-    en_US: mem0ai
-    zh_Hans: mem0ai
+    en_US: mem0ai-local
+    zh_Hans: mem0ai-local
   description:
-    en_US: mem0ai plugin, local-only mode, async_mode enabled by default.
-    zh_Hans: mem0ai 插件，仅本地模式，async_mode 默认开启。
+    en_US: mem0ai-local plugin, local-only mode, async_mode enabled by default.
+    zh_Hans: mem0ai-local 插件，仅本地模式，async_mode 默认开启。
   icon: mem0_plugin.png
   tags:
     - utilities
