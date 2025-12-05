@@ -31,6 +31,7 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 
 ### What's New (v0.1.7)
 - **Memgraph Support**: Added `langchain-memgraph` dependency so Memgraph can be used as a graph backend without manual installs.
+- **Expiration for Memories**: `add_memory` accepts `expiration_date` (e.g., `14d`, `2h`, `30min`) which is converted to a `YYYY-MM-DD` date before storing.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.

@@ -2,12 +2,13 @@
 
 ## Version 0.1.7 (2025-12-05)
 
-### 🧭 Graph Support Update
+### 🧭 Graph & Expiration Updates
 
-Added Memgraph support via `langchain-memgraph` dependency so the plugin can use Memgraph as a graph backend without manual installs.
+Added Memgraph support via `langchain-memgraph` dependency so the plugin can use Memgraph as a graph backend without manual installs, and introduced `expiration_date` support in `add_memory`.
 
 #### Highlights
 - **Memgraph Dependency**: Added `langchain-memgraph` to `requirements.txt` to enable Memgraph graph store support out-of-the-box.
+- **Memory Expiration**: `add_memory` now accepts `expiration_date` as a relative duration (`<int><unit>` with unit in {s, min, h, d, m, Y}); it is converted to `YYYY-MM-DD` before sending to Mem0.
 - **Version Bump**: All docs and packaging updated to 0.1.7.
 
 ---
