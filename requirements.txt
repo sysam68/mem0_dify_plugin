@@ -7,3 +7,5 @@ transformers
 torch
 dify_plugin
 python-dotenv
+ollama>=0.1.9
+langchain-memgraph

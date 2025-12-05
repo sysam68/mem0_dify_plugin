@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.4
+# Mem0 Dify Plugin v0.1.7
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,8 +29,8 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.4)
-- **Logging Investigation**: Documented logging output behavior and investigated potential improvements. Identified that logs may appear twice (JSON format from Dify handler + standard format from Python root logger) and that JSON format uses Unicode encoding for non-ASCII characters.
+### What's New (v0.1.7)
+- **Memgraph Support**: Added `langchain-memgraph` dependency so Memgraph can be used as a graph backend without manual installs.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -390,7 +390,8 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v0.1.4 | 2025-11-23 | Logging investigation and documentation update |
+| v0.1.7 | 2025-12-05 | Added Memgraph graph backend dependency (`langchain-memgraph`) |
+| v0.1.6 | 2025-11-23 | Logging investigation and documentation update |
 | v0.1.3 | 2025-11-22 | Unified logging configuration, database connection pool optimization, pgvector config enhancement, constant naming optimization |
 | v0.1.2 | 2025-11-21 | Configurable timeout parameters, optimized default timeouts (30s for all read ops), code quality improvements |
 | v0.1.1 | 2025-11-20 | Timeout & service degradation for async operations, robust error handling, resource management improvements, production stability fixes |

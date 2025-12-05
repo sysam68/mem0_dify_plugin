@@ -1,26 +1,26 @@
 #!/bin/bash
 
-# Mem0 Dify Plugin - GitHub 准备脚本
-# 此脚本帮助你准备插件并上传到 GitHub
+# Mem0 Dify Plugin - GitHub Preparation Script
+# This script helps you prepare the plugin for upload to GitHub
 
 set -e
 
-echo "🚀 准备 Mem0 Dify Plugin 上传到 GitHub..."
+echo "🚀 Preparing Mem0 Dify Plugin for upload to GitHub..."
 echo ""
 
-# 1. 替换 README
+# 1. Replace README
 if [ -f "README_NEW.md" ]; then
-    echo "📝 更新 README.md..."
+    echo "📝 Updating README.md..."
     mv README.md README_OLD.md
     mv README_NEW.md README.md
-    echo "   ✅ README.md 已更新"
+    echo "   ✅ README.md updated"
 else
-    echo "   ℹ️  README_NEW.md 不存在，跳过"
+    echo "   ℹ️  README_NEW.md not found, skipping"
 fi
 
-# 2. 创建 LICENSE
+# 2. Create LICENSE
 if [ ! -f "LICENSE" ]; then
-    echo "📄 创建 LICENSE 文件..."
+    echo "📄 Creating LICENSE file..."
     cat > LICENSE << 'EOF'
 MIT License
 
@@ -46,27 +46,27 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 EOF
-    echo "   ✅ LICENSE 已创建"
+    echo "   ✅ LICENSE created"
 else
-    echo "   ℹ️  LICENSE 已存在，跳过"
+    echo "   ℹ️  LICENSE already exists, skipping"
 fi
 
-# 3. 初始化 Git（如果需要）
+# 3. Initialize Git (if needed)
 if [ ! -d ".git" ]; then
-    echo "📦 初始化 Git 仓库..."
+    echo "📦 Initializing Git repository..."
     git init
-    echo "   ✅ Git 仓库已初始化"
+    echo "   ✅ Git repository initialized"
 else
-    echo "   ℹ️  Git 仓库已存在"
+    echo "   ℹ️  Git repository already exists"
 fi
 
-# 4. 添加所有文件
-echo "📂 添加文件到 Git..."
+# 4. Add all files
+echo "📂 Adding files to Git..."
 git add .
-echo "   ✅ 文件已添加"
+echo "   ✅ Files added"
 
-# 5. 创建提交
-echo "💾 创建 Git 提交..."
+# 5. Create commit
+echo "💾 Creating Git commit..."
 git commit -m "feat: Mem0 Dify Plugin v0.0.8
 
 - 8 complete memory management tools
@@ -75,25 +75,25 @@ git commit -m "feat: Mem0 Dify Plugin v0.0.8
 - Multi-entity support (user/agent/app/run)
 - Metadata system
 - 4 language support (en/zh/pt/ja)
-- 100% backward compatible" || echo "   ℹ️  没有新的更改需要提交"
+- 100% backward compatible" || echo "   ℹ️  No new changes to commit"
 
 echo ""
-echo "✅ 准备完成！"
+echo "✅ Preparation complete!"
 echo ""
-echo "📋 下一步操作："
+echo "📋 Next steps:"
 echo ""
-echo "1. 在 GitHub 创建新仓库："
-echo "   访问: https://github.com/new"
-echo "   名称: dify-plugin-mem0"
-echo "   ❌ 不要添加 README、.gitignore 或 LICENSE"
+echo "1. Create a new repository on GitHub:"
+echo "   Visit: https://github.com/new"
+echo "   Name: dify-plugin-mem0"
+echo "   ❌ Do NOT add README, .gitignore, or LICENSE"
 echo ""
-echo "2. 添加远程仓库并推送（替换 yourusername）："
+echo "2. Add remote repository and push (replace yourusername):"
 echo "   git remote add origin https://github.com/yourusername/dify-plugin-mem0.git"
 echo "   git branch -M main"
 echo "   git push -u origin main"
 echo ""
-echo "3. 在 Dify 中安装："
+echo "3. Install in Dify:"
 echo "   Settings → Plugins → Install from GitHub"
-echo "   输入: yourusername/dify-plugin-mem0"
+echo "   Enter: yourusername/dify-plugin-mem0"
 echo ""
-echo "🎉 完成！"
+echo "🎉 Done!"

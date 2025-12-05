@@ -240,6 +240,9 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
             credentials.get("local_vector_db_json"), "local_vector_db_json",
         )
 
+        # Optional logical memory name (overrides collection/table for vector store)
+        memory_name = credentials.get("memory_name")
+
         if llm is None:
             msg = "LLM configuration (local_llm_json) is required in Local mode"
             _raise_config_error(msg)
@@ -249,6 +252,15 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
         if vector_store is None:
             msg = "Vector Database configuration (local_vector_db_json) is required in Local mode"
             _raise_config_error(msg)
+
+        # Apply memory_name override to vector store when provided
+        if (
+            isinstance(memory_name, str)
+            and memory_name.strip()
+            and isinstance(vector_store.get("config"), dict)
+        ):
+            vector_store["config"]["collection_name"] = memory_name.strip()
+            logger.debug("Overriding vector store collection_name to %s", memory_name.strip())
 
         # Normalize pgvector config shape if necessary
         if (

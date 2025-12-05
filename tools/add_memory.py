@@ -2,6 +2,8 @@
 
 import asyncio
 from collections.abc import Generator
+from datetime import datetime, timedelta
+import re
 from typing import Any
 
 from dify_plugin import Tool
@@ -15,6 +17,36 @@ from utils.mem0_client import (
 )
 
 logger = get_logger(__name__)
+
+
+def _parse_expiration(expiration_text: Any) -> str | None:
+    """Parse expiration_date shorthand like '14d', '2h', '30min', etc. to YYYY-MM-DD."""
+    if not isinstance(expiration_text, str):
+        return None
+    match = re.fullmatch(r"\s*(\d+)\s*(s|min|h|d|m|Y)\s*", expiration_text)
+    if not match:
+        return None
+
+    value = int(match.group(1))
+    unit = match.group(2)
+
+    # Map units to timedelta
+    if unit == "s":
+        delta = timedelta(seconds=value)
+    elif unit == "min":
+        delta = timedelta(minutes=value)
+    elif unit == "h":
+        delta = timedelta(hours=value)
+    elif unit == "d":
+        delta = timedelta(days=value)
+    elif unit == "m":
+        delta = timedelta(days=value * 30)  # approximate month
+    elif unit == "Y":
+        delta = timedelta(days=value * 365)  # approximate year
+    else:
+        return None
+
+    return (datetime.utcnow() + delta).strftime("%Y-%m-%d")
 
 
 class AddMemoryTool(Tool):
@@ -39,6 +71,8 @@ class AddMemoryTool(Tool):
         run_id = tool_parameters.get("run_id")
         metadata = tool_parameters.get("metadata")  # client parses JSON if string
         output_format = tool_parameters.get("output_format")
+        expiration_text = tool_parameters.get("expiration_date")
+        expiration_date = _parse_expiration(expiration_text) if expiration_text else None
 
         # Build messages
         messages = []
@@ -60,6 +94,12 @@ class AddMemoryTool(Tool):
             payload["metadata"] = metadata
         if output_format:
             payload["output_format"] = output_format
+        if expiration_date:
+            payload["expiration_date"] = expiration_date
+        elif expiration_text:
+            logger.warning(
+                "Invalid expiration_date format, expected <int><unit> with unit in {s,min,h,d,m,Y}"
+            )
 
         try:
             # Skip when no messages prepared or only blank content

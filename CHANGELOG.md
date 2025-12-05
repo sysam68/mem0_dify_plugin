@@ -1,6 +1,18 @@
 # Mem0 Dify Plugin - Changelog
 
-## Version 0.1.4 (2025-11-23)
+## Version 0.1.7 (2025-12-05)
+
+### 🧭 Graph Support Update
+
+Added Memgraph support via `langchain-memgraph` dependency so the plugin can use Memgraph as a graph backend without manual installs.
+
+#### Highlights
+- **Memgraph Dependency**: Added `langchain-memgraph` to `requirements.txt` to enable Memgraph graph store support out-of-the-box.
+- **Version Bump**: All docs and packaging updated to 0.1.7.
+
+---
+
+## Version 0.1.6 (2025-11-23)
 
 ### 🔍 Logging Investigation & Documentation Update
 
@@ -32,7 +44,7 @@ This release documents logging-related investigations and discussions, with no c
 #### 📝 Notes
 - No code changes in this release
 - Documentation updated to maintain consistency across all markdown files
-- Version number incremented to 0.1.4
+- Version number incremented to 0.1.6
 
 ---
 

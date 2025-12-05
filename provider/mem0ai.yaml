@@ -48,6 +48,18 @@ credentials_for_provider:
     placeholder:
       en_US: '{"provider":"pgvector","config":{...}}'
       zh_Hans: '{"provider":"pgvector","config":{...}}'
+  memory_name:
+    type: text-input
+    required: false
+    label:
+      en_US: Memory name (collection/table)
+      zh_Hans: 记忆名称（集合/表）
+    placeholder:
+      en_US: mem0
+      zh_Hans: mem0
+    help:
+      en_US: Optional logical memory name; overrides vector store collection/table to isolate multiple memories.
+      zh_Hans: 可选，覆盖向量库的集合/表名，用于区分多组记忆。
   local_graph_db_json:
     type: text-input
     required: false

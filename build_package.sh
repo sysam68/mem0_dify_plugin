@@ -6,7 +6,7 @@
 set -e
 
 PLUGIN_NAME="mem0ai-local"
-VERSION="0.1.5"
+VERSION="0.1.7"
 OUTPUT_FILE="${PLUGIN_NAME}-${VERSION}.difypkg"
 TEMP_DIR="temp_package"
 
@@ -27,12 +27,16 @@ cp PRIVACY.md "$TEMP_DIR/"
 cp README.md "$TEMP_DIR/"
 cp CHANGELOG.md "$TEMP_DIR/"
 cp .difyignore "$TEMP_DIR/"
+cp __init__.py "$TEMP_DIR/"
 
 # Copy provider directory
 cp -r provider "$TEMP_DIR/"
 
 # Copy tools directory
 cp -r tools "$TEMP_DIR/"
+
+# Copy utils directory (needed at runtime)
+cp -r utils "$TEMP_DIR/"
 
 # Copy assets directory
 cp -r _assets "$TEMP_DIR/"
