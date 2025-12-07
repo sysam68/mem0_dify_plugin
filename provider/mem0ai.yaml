@@ -99,6 +99,18 @@ credentials_for_provider:
     help:
       en_US: Optional collection/table name for the vector store. If set, overrides the collection_name inside the Vector DB JSON config.
       zh_Hans: 可选，向量库的集合/表名称。填写后将覆盖向量数据库 JSON 配置中的 collection_name。
+  memory_name:
+    type: text-input
+    required: false
+    label:
+      en_US: Memory name (deprecated)
+      zh_Hans: 记忆名称（已弃用）
+    placeholder:
+      en_US: mem0
+      zh_Hans: mem0
+    help:
+      en_US: Legacy field kept for compatibility; ignored unless collection_name is empty.
+      zh_Hans: 兼容保留字段；仅在 collection_name 为空时使用。
   local_vector_db_json:
     type: text-input
     required: true
