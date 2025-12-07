@@ -6,7 +6,7 @@ identity:
     zh_Hans: mem0ai-local
   description:
     en_US: mem0ai-local plugin, local-only mode, async_mode enabled by default.
-    zh_Hans: mem0ai-local 插件，仅本地模式，async_mode 默认开启。
+  zh_Hans: mem0ai-local 插件，仅本地模式，async_mode 默认开启。
   icon: mem0_plugin.png
   tags:
     - utilities
@@ -21,16 +21,18 @@ credentials_for_provider:
     help:
       en_US: "When async mode is enabled, all Mem0 operations run asynchronously and concurrently. Search waits for results; Add does not."
       zh_Hans: "开启异步模式后，所有Mem0的操作都异步并发执行，Search操作会等待返回结果而Add操作不会。"
-  enable_graph:
-    type: boolean
+  expiration_time:
+    type: text-input
     required: false
-    default: false
     label:
-      en_US: Enable Graph
-      zh_Hans: 启用图谱
+      en_US: Expiration Time (integer + unit)
+      zh_Hans: 过期时间（整数 + 单位）
+    placeholder:
+      en_US: 30d, 2h, 90min
+      zh_Hans: 30d, 2h, 90min
     help:
-      en_US: "Enable graph mode for Mem0 project. Default is disabled; set to true to activate graph features when a graph DB is configured."
-      zh_Hans: "为 Mem0 项目启用图谱模式。默认关闭；配置图数据库后设为 true 可启用图谱功能。"
+      en_US: Global expiration (e.g., 30d, 2h). Overrides per-call expiration_date; if set, add_memory always uses this.
+      zh_Hans: 全局过期时间（例如 30d、2h）。若配置，则会覆盖工具调用中的 expiration_date，并始终生效。
   local_llm_json:
     type: text-input
     required: true
@@ -40,36 +42,6 @@ credentials_for_provider:
     placeholder:
       en_US: '{"provider":"azure_openai","config":{...}}'
       zh_Hans: '{"provider":"azure_openai","config":{...}}'
-  local_embedder_json:
-    type: text-input
-    required: true
-    label:
-      en_US: Embedder (JSON)
-      zh_Hans: 向量模型（JSON）
-    placeholder:
-      en_US: '{"provider":"azure_openai","config":{...}}'
-      zh_Hans: '{"provider":"azure_openai","config":{...}}'
-  local_vector_db_json:
-    type: text-input
-    required: true
-    label:
-      en_US: Vector Database (JSON)
-      zh_Hans: 向量数据库（JSON）
-    placeholder:
-      en_US: '{"provider":"pgvector","config":{...}}'
-      zh_Hans: '{"provider":"pgvector","config":{...}}'
-  collection_name:
-    type: text-input
-    required: false
-    label:
-      en_US: Collection name (override the JSON config)
-      zh_Hans: 集合名称（覆盖 JSON 配置）
-    placeholder:
-      en_US: memories
-      zh_Hans: memories
-    help:
-      en_US: Optional collection/table name for the vector store. If set, overrides the collection_name inside the Vector DB JSON config.
-      zh_Hans: 可选，向量库的集合/表名称。填写后将覆盖向量数据库 JSON 配置中的 collection_name。
   instructions:
     type: text-input
     required: false
@@ -118,6 +90,46 @@ credentials_for_provider:
     help:
       en_US: If provided, sets custom_update_memory_prompt in Mem0 config.
       zh_Hans: 如填写，将设置 Mem0 配置中的 custom_update_memory_prompt。
+  local_embedder_json:
+    type: text-input
+    required: true
+    label:
+      en_US: Embedder (JSON)
+      zh_Hans: 向量模型（JSON）
+    placeholder:
+      en_US: '{"provider":"azure_openai","config":{...}}'
+      zh_Hans: '{"provider":"azure_openai","config":{...}}'
+  collection_name:
+    type: text-input
+    required: false
+    label:
+      en_US: Collection name (override the JSON config)
+      zh_Hans: 集合名称（覆盖 JSON 配置）
+    placeholder:
+      en_US: memories
+      zh_Hans: memories
+    help:
+      en_US: Optional collection/table name for the vector store. If set, overrides the collection_name inside the Vector DB JSON config.
+      zh_Hans: 可选，向量库的集合/表名称。填写后将覆盖向量数据库 JSON 配置中的 collection_name。
+  local_vector_db_json:
+    type: text-input
+    required: true
+    label:
+      en_US: Vector Database (JSON)
+      zh_Hans: 向量数据库（JSON）
+    placeholder:
+      en_US: '{"provider":"pgvector","config":{...}}'
+      zh_Hans: '{"provider":"pgvector","config":{...}}'
+  enable_graph:
+    type: boolean
+    required: false
+    default: false
+    label:
+      en_US: Enable Graph
+      zh_Hans: 启用图谱
+    help:
+      en_US: "Enable graph mode for Mem0 project. Default is disabled; set to true to activate graph features when a graph DB is configured."
+      zh_Hans: "为 Mem0 项目启用图谱模式。默认关闭；配置图数据库后设为 true 可启用图谱功能。"
   local_graph_db_json:
     type: text-input
     required: false

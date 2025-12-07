@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.9
+# Mem0 Dify Plugin v0.1.10
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,11 +29,11 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.9)
-- **Collection Override Only**: Simplified to a single `Collection name (override the JSON config)` field; the old Memory name field was removed.
-- **Project Instructions**: New `instructions` field (2048 chars) applies `custom_instructions` via `project.update(...)`.
-- **Global Expiration**: `expiration_time` credential (e.g., `30d`, `2h`) enforces a global `expiration_date` for all add_memory calls.
-- **Custom Prompts**: Added `custom_fact_extraction_prompt` and `custom_update_memory_prompt` passthrough to Mem0 config.
+### What's New (v0.1.10)
+- **Credential Ordering**: Reordered provider fields for a smoother setup (async_mode, expiration, LLM, instructions, custom prompts, embedder, collection override, vector DB, enable graph, graph DB, reranker).
+- **Collection Override Only**: Simplified to a single `Collection name (override the JSON config)` field; the old Memory name field was removed (continues from 0.1.9).
+- **Project Instructions & Prompts**: `instructions` (2048 chars), `custom_fact_extraction_prompt`, and `custom_update_memory_prompt` flow into Mem0 config/project settings.
+- **Global Expiration**: `expiration_time` credential (e.g., `30d`, `2h`) enforces a global `expiration_date` for add_memory.
 - **Mem0 Fork Dependency**: Continues to install Mem0 from the `sysam68/mem0` fork to pick up local-mode fixes.
 
 ### Previous Updates (v0.1.3)

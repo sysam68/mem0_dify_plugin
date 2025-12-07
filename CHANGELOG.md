@@ -1,5 +1,14 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.10 (2025-12-07)
+
+### 🧭 Credential Ordering & UX
+
+- Reordered provider fields for clearer setup: Async Mode → Expiration Time → LLM → Instructions → Custom Fact Prompt → Custom Update Prompt → Embedder → Collection Override → Vector DB → Enable Graph → Graph DB → Reranker.
+- Retains prior improvements: collection override only (Memory name removed), instructions/custom prompts, global expiration, Mem0 fork dependency.
+
+---
+
 ## Version 0.1.9 (2025-12-07)
 
 ### 🛠️ Config Enhancements & Prompts
