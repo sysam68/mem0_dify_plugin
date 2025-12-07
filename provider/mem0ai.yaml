@@ -21,6 +21,16 @@ credentials_for_provider:
     help:
       en_US: "When async mode is enabled, all Mem0 operations run asynchronously and concurrently. Search waits for results; Add does not."
       zh_Hans: "开启异步模式后，所有Mem0的操作都异步并发执行，Search操作会等待返回结果而Add操作不会。"
+  enable_graph:
+    type: boolean
+    required: false
+    default: false
+    label:
+      en_US: Enable Graph
+      zh_Hans: 启用图谱
+    help:
+      en_US: "Enable graph mode for Mem0 project. Default is disabled; set to true to activate graph features when a graph DB is configured."
+      zh_Hans: "为 Mem0 项目启用图谱模式。默认关闭；配置图数据库后设为 true 可启用图谱功能。"
   local_llm_json:
     type: text-input
     required: true
@@ -60,6 +70,18 @@ credentials_for_provider:
     help:
       en_US: Optional logical memory name; overrides vector store collection/table to isolate multiple memories.
       zh_Hans: 可选，覆盖向量库的集合/表名，用于区分多组记忆。
+  collection_name:
+    type: text-input
+    required: false
+    label:
+      en_US: Collection name override
+      zh_Hans: 集合名称覆盖
+    placeholder:
+      en_US: memories
+      zh_Hans: memories
+    help:
+      en_US: Optional explicit collection/table name for the vector store. If set, overrides collection_name inside vector DB config.
+      zh_Hans: 可选，向量库的集合/表名称覆盖。填写后将覆盖向量数据库配置中的 collection_name。
   local_graph_db_json:
     type: text-input
     required: false

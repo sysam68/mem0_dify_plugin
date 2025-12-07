@@ -1,11 +1,11 @@
-mem0ai
+mem0ai @ git+https://github.com/sysam68/mem0.git@main
 pydantic
 langchain-neo4j
 rank-bm25
 psycopg2-binary
 transformers
 torch
-dify_plugin
+dify-plugin==0.3.3
 python-dotenv
 ollama>=0.1.9
 langchain-memgraph

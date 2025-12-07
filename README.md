@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.7
+# Mem0 Dify Plugin v0.1.8
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,9 +29,10 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.7)
-- **Memgraph Support**: Added `langchain-memgraph` dependency so Memgraph can be used as a graph backend without manual installs.
-- **Expiration for Memories**: `add_memory` accepts `expiration_date` (e.g., `14d`, `2h`, `30min`) which is converted to a `YYYY-MM-DD` date before storing.
+### What's New (v0.1.8)
+- **Graph Toggle**: New `enable_graph` switch (default: false) placed before the graph DB config, letting you explicitly turn graph features on/off.
+- **Collection Override**: Added `collection_name` input to override the vector store collection/table directly from plugin settings.
+- **Mem0 Fork Dependency**: Plugin now installs Mem0 from the `sysam68/mem0` fork to pick up the latest local-mode fixes.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -391,6 +392,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.1.8 | 2025-12-07 | Graph enable toggle (default off), collection_name override, Mem0 fork dependency |
 | v0.1.7 | 2025-12-05 | Added Memgraph graph backend dependency (`langchain-memgraph`) |
 | v0.1.6 | 2025-11-23 | Logging investigation and documentation update |
 | v0.1.3 | 2025-11-22 | Unified logging configuration, database connection pool optimization, pgvector config enhancement, constant naming optimization |

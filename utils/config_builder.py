@@ -209,6 +209,19 @@ _built_config_cache: dict[str, dict[str, Any]] = {}
 _build_config_lock = threading.Lock()
 
 
+def _read_bool(value: Any, default: bool) -> bool:
+    """Coerce common truthy/falsey strings and bools."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in {"true", "1", "yes", "y", "on"}:
+            return True
+        if text in {"false", "0", "no", "n", "off"}:
+            return False
+    return default
+
+
 def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
     """Construct mem0 local config dict from simplified JSON credential blocks.
 
@@ -242,6 +255,8 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
 
         # Optional logical memory name (overrides collection/table for vector store)
         memory_name = credentials.get("memory_name")
+        collection_name = credentials.get("collection_name")
+        enable_graph = _read_bool(credentials.get("enable_graph"), False)
 
         if llm is None:
             msg = "LLM configuration (local_llm_json) is required in Local mode"
@@ -261,6 +276,14 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
         ):
             vector_store["config"]["collection_name"] = memory_name.strip()
             logger.debug("Overriding vector store collection_name to %s", memory_name.strip())
+        # Apply explicit collection_name override when provided by user
+        if (
+            isinstance(collection_name, str)
+            and collection_name.strip()
+            and isinstance(vector_store.get("config"), dict)
+        ):
+            vector_store["config"]["collection_name"] = collection_name.strip()
+            logger.debug("Explicit collection_name override applied: %s", collection_name.strip())
 
         # Normalize pgvector config shape if necessary
         if (
@@ -291,6 +314,14 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
             config["graph_store"] = graph_store
             logger.debug("Graph store configuration included")
 
+        config["enable_graph"] = enable_graph
+        if enable_graph and not graph_store:
+            logger.warning("enable_graph is true but no graph_store configuration was provided")
+        elif enable_graph:
+            logger.debug("Graph mode enabled via credentials")
+        else:
+            logger.debug("Graph mode disabled via credentials")
+
         logger.info("Mem0 local configuration built successfully")
 
         # Cache the config if we have a valid cache key
@@ -305,14 +336,12 @@ def is_async_mode(credentials: dict[str, Any]) -> bool:
 
     Defaults to True (异步模式). Accepts common truthy/falsey string values.
     """
-    value = credentials.get("async_mode")
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, str):
-        text = value.strip().lower()
-        if text in {"true", "1", "yes", "y", "on"}:
-            return True
-        if text in {"false", "0", "no", "n", "off"}:
-            return False
-    # Default: async enabled
-    return True
+    return _read_bool(credentials.get("async_mode"), True)
+
+
+def is_enable_graph(credentials: dict[str, Any]) -> bool:
+    """Read enable_graph from credentials and coerce to boolean.
+
+    Defaults to False. Accepts common truthy/falsey string values.
+    """
+    return _read_bool(credentials.get("enable_graph"), False)

@@ -18,6 +18,19 @@ from .logger import get_logger
 logger = get_logger(__name__)
 
 
+def _enable_graph_if_available(memory_obj: Any, enable_graph: bool) -> None:
+    """Enable graph mode at project level if requested and supported."""
+    if not enable_graph:
+        return
+    try:
+        project = getattr(memory_obj, "project", None)
+        if project and hasattr(project, "update"):
+            project.update(enable_graph=True)
+            logger.info("Graph mode enabled at project level")
+    except Exception:
+        logger.exception("Failed to enable graph mode at project level")
+
+
 def _get_config_hash(credentials: dict[str, Any]) -> str:
     """Generate a hash from credentials for cache key.
 
@@ -98,7 +111,9 @@ class LocalClient:
         """
         logger.info("Initializing LocalClient")
         config = build_local_mem0_config(credentials)
+        self.enable_graph = bool(config.get("enable_graph"))
         self.memory = Memory.from_config(config)
+        _enable_graph_if_available(self.memory, self.enable_graph)
         self.use_custom_prompt = True
         self.custom_prompt = CUSTOM_PROMPT
         logger.info("LocalClient initialized successfully")
@@ -177,6 +192,7 @@ class LocalClient:
                 - memory_type (str, optional): Type of memory. Defaults to conversational or factual.
                   Use "procedural_memory" for procedural type.
                 - prompt (str, optional): Custom prompt to use for memory creation.
+                - expiration_date (str, optional): Expiration date/TTL (e.g., YYYY-MM-DD or ISO string).
 
         Returns:
             dict: Result of the memory addition, typically with items added/updated (in "results"),
@@ -200,6 +216,9 @@ class LocalClient:
             kwargs["run_id"] = payload.get("run_id")
         if metadata is not None:
             kwargs["metadata"] = metadata
+        expiration_date = payload.get("expiration_date")
+        if expiration_date:
+            kwargs["expiration_date"] = expiration_date
         if self.use_custom_prompt:
             kwargs["prompt"] = self.custom_prompt
 
@@ -370,6 +389,7 @@ class AsyncLocalClient:
         """
         logger.info("Initializing AsyncLocalClient")
         self.config = build_local_mem0_config(credentials)
+        self.enable_graph = bool(self.config.get("enable_graph"))
         self.memory = None
         # Async lock to protect one-time asynchronous initialization.
         self._create_lock = asyncio.Lock()
@@ -388,6 +408,7 @@ class AsyncLocalClient:
             if self.memory is None:
                 logger.info("Creating AsyncMemory instance")
                 self.memory = await AsyncMemory.from_config(self.config)
+                _enable_graph_if_available(self.memory, self.enable_graph)
                 logger.info("AsyncMemory instance created successfully")
         return self.memory
 
@@ -630,6 +651,7 @@ class AsyncLocalClient:
                 - memory_type (str, optional): Type of memory. Defaults to conversational or factual.
                   Use "procedural_memory" for procedural type.
                 - prompt (str, optional): Custom prompt to use for memory creation.
+                - expiration_date (str, optional): Expiration date/TTL (e.g., YYYY-MM-DD or ISO string).
 
         Returns:
             dict: Result of the memory addition, typically with items added/updated (in "results"),
@@ -653,6 +675,9 @@ class AsyncLocalClient:
             kwargs["run_id"] = payload.get("run_id")
         if metadata is not None:
             kwargs["metadata"] = metadata
+        expiration_date = payload.get("expiration_date")
+        if expiration_date:
+            kwargs["expiration_date"] = expiration_date
         if self.use_custom_prompt:
             kwargs["prompt"] = self.custom_prompt
 

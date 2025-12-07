@@ -1,5 +1,16 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.8 (2025-12-07)
+
+### 🚩 Config & Dependency Updates
+
+- **Graph Toggle (Default Off)**: Added an explicit `enable_graph` credential (shown before graph DB config) so graph features are opt-in and clearly controlled.
+- **Collection Override**: New `collection_name` input lets users override the vector store collection/table directly from plugin settings.
+- **Mem0 Fork**: Dependencies now pull Mem0 from `github.com/sysam68/mem0` to include the latest local-mode fixes.
+- **Version Bump**: All docs, manifest, and packaging updated to 0.1.8.
+
+---
+
 ## Version 0.1.7 (2025-12-05)
 
 ### 🧭 Graph & Expiration Updates
