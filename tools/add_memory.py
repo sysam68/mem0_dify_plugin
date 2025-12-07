@@ -72,7 +72,18 @@ class AddMemoryTool(Tool):
         metadata = tool_parameters.get("metadata")  # client parses JSON if string
         output_format = tool_parameters.get("output_format")
         expiration_text = tool_parameters.get("expiration_date")
-        expiration_date = _parse_expiration(expiration_text) if expiration_text else None
+
+        # Global expiration from credentials overrides per-call value
+        global_expiration_text = self.runtime.credentials.get("expiration_time")
+        expiration_date = None
+        if global_expiration_text:
+            expiration_date = _parse_expiration(global_expiration_text)
+            if not expiration_date:
+                logger.warning(
+                    "Global expiration_time is invalid, expected <int><unit> with unit in {s,min,h,d,m,Y}"
+                )
+        if expiration_date is None and expiration_text:
+            expiration_date = _parse_expiration(expiration_text)
 
         # Build messages
         messages = []
@@ -96,6 +107,8 @@ class AddMemoryTool(Tool):
             payload["output_format"] = output_format
         if expiration_date:
             payload["expiration_date"] = expiration_date
+            if global_expiration_text:
+                logger.info("Applied global expiration_time override")
         elif expiration_text:
             logger.warning(
                 "Invalid expiration_date format, expected <int><unit> with unit in {s,min,h,d,m,Y}"

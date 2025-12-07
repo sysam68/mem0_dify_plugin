@@ -18,17 +18,27 @@ from .logger import get_logger
 logger = get_logger(__name__)
 
 
-def _enable_graph_if_available(memory_obj: Any, enable_graph: bool) -> None:
-    """Enable graph mode at project level if requested and supported."""
-    if not enable_graph:
+def _apply_project_settings(
+    memory_obj: Any,
+    enable_graph: bool,
+    instructions: str | None,
+) -> None:
+    """Apply project-level settings (graph toggle, instructions) if supported."""
+    if not enable_graph and not instructions:
         return
     try:
         project = getattr(memory_obj, "project", None)
         if project and hasattr(project, "update"):
-            project.update(enable_graph=True)
-            logger.info("Graph mode enabled at project level")
+            updates: dict[str, Any] = {}
+            if enable_graph:
+                updates["enable_graph"] = True
+            if instructions:
+                updates["custom_instructions"] = instructions
+            if updates:
+                project.update(**updates)
+                logger.info("Applied project settings: %s", ", ".join(updates.keys()))
     except Exception:
-        logger.exception("Failed to enable graph mode at project level")
+        logger.exception("Failed to apply project settings at project level")
 
 
 def _get_config_hash(credentials: dict[str, Any]) -> str:
@@ -112,8 +122,9 @@ class LocalClient:
         logger.info("Initializing LocalClient")
         config = build_local_mem0_config(credentials)
         self.enable_graph = bool(config.get("enable_graph"))
+        self.custom_instructions = config.get("custom_instructions")
         self.memory = Memory.from_config(config)
-        _enable_graph_if_available(self.memory, self.enable_graph)
+        _apply_project_settings(self.memory, self.enable_graph, self.custom_instructions)
         self.use_custom_prompt = True
         self.custom_prompt = CUSTOM_PROMPT
         logger.info("LocalClient initialized successfully")
@@ -390,6 +401,7 @@ class AsyncLocalClient:
         logger.info("Initializing AsyncLocalClient")
         self.config = build_local_mem0_config(credentials)
         self.enable_graph = bool(self.config.get("enable_graph"))
+        self.custom_instructions = self.config.get("custom_instructions")
         self.memory = None
         # Async lock to protect one-time asynchronous initialization.
         self._create_lock = asyncio.Lock()
@@ -408,7 +420,7 @@ class AsyncLocalClient:
             if self.memory is None:
                 logger.info("Creating AsyncMemory instance")
                 self.memory = await AsyncMemory.from_config(self.config)
-                _enable_graph_if_available(self.memory, self.enable_graph)
+                _apply_project_settings(self.memory, self.enable_graph, self.custom_instructions)
                 logger.info("AsyncMemory instance created successfully")
         return self.memory
 

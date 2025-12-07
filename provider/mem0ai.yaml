@@ -58,30 +58,66 @@ credentials_for_provider:
     placeholder:
       en_US: '{"provider":"pgvector","config":{...}}'
       zh_Hans: '{"provider":"pgvector","config":{...}}'
-  memory_name:
-    type: text-input
-    required: false
-    label:
-      en_US: Memory name (collection/table)
-      zh_Hans: 记忆名称（集合/表）
-    placeholder:
-      en_US: mem0
-      zh_Hans: mem0
-    help:
-      en_US: Optional logical memory name; overrides vector store collection/table to isolate multiple memories.
-      zh_Hans: 可选，覆盖向量库的集合/表名，用于区分多组记忆。
   collection_name:
     type: text-input
     required: false
     label:
-      en_US: Collection name override
-      zh_Hans: 集合名称覆盖
+      en_US: Collection name (override the JSON config)
+      zh_Hans: 集合名称（覆盖 JSON 配置）
     placeholder:
       en_US: memories
       zh_Hans: memories
     help:
-      en_US: Optional explicit collection/table name for the vector store. If set, overrides collection_name inside vector DB config.
-      zh_Hans: 可选，向量库的集合/表名称覆盖。填写后将覆盖向量数据库配置中的 collection_name。
+      en_US: Optional collection/table name for the vector store. If set, overrides the collection_name inside the Vector DB JSON config.
+      zh_Hans: 可选，向量库的集合/表名称。填写后将覆盖向量数据库 JSON 配置中的 collection_name。
+  instructions:
+    type: text-input
+    required: false
+    label:
+      en_US: Instructions (2048 chars)
+      zh_Hans: 指令（最多 2048 字符）
+    placeholder:
+      en_US: Provide custom instructions for the Mem0 project
+      zh_Hans: 为 Mem0 项目提供自定义指令
+    help:
+      en_US: Optional custom instructions applied at the project level; sent via project.update(custom_instructions=...).
+      zh_Hans: 可选项目级指令，通过 project.update(custom_instructions=...) 应用。
+  expiration_time:
+    type: text-input
+    required: false
+    label:
+      en_US: Expiration Time (integer + unit)
+      zh_Hans: 过期时间（整数 + 单位）
+    placeholder:
+      en_US: 30d, 2h, 90min
+      zh_Hans: 30d, 2h, 90min
+    help:
+      en_US: Global expiration (e.g., 30d, 2h). Overrides per-call expiration_date; if set, add_memory always uses this.
+      zh_Hans: 全局过期时间（例如 30d、2h）。若配置，则会覆盖工具调用中的 expiration_date，并始终生效。
+  custom_fact_extraction_prompt:
+    type: text-input
+    required: false
+    label:
+      en_US: Custom Fact Extraction Prompt
+      zh_Hans: 自定义事实提取提示词
+    placeholder:
+      en_US: Optional fact extraction prompt override
+      zh_Hans: 可选的事实提取提示词覆盖
+    help:
+      en_US: If provided, sets custom_fact_extraction_prompt in Mem0 config.
+      zh_Hans: 如填写，将设置 Mem0 配置中的 custom_fact_extraction_prompt。
+  custom_update_memory_prompt:
+    type: text-input
+    required: false
+    label:
+      en_US: Custom Update Memory Prompt
+      zh_Hans: 自定义记忆更新提示词
+    placeholder:
+      en_US: Optional update memory prompt override
+      zh_Hans: 可选的记忆更新提示词覆盖
+    help:
+      en_US: If provided, sets custom_update_memory_prompt in Mem0 config.
+      zh_Hans: 如填写，将设置 Mem0 配置中的 custom_update_memory_prompt。
   local_graph_db_json:
     type: text-input
     required: false

@@ -1,5 +1,17 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.9 (2025-12-07)
+
+### 🛠️ Config Enhancements & Prompts
+
+- **Collection Override Simplification**: Removed the duplicate memory name field; kept a single `Collection name (override the JSON config)` input.
+- **Project Instructions**: New `instructions` credential (2048 chars) applies `custom_instructions` via `project.update(...)`.
+- **Global Expiration**: `expiration_time` credential (e.g., `30d`, `2h`) enforces a global `expiration_date` for all add_memory calls (overrides per-call expiration).
+- **Custom Prompts**: Added `custom_fact_extraction_prompt` and `custom_update_memory_prompt` passthrough to Mem0 config.
+- **Version Bump**: All docs, manifest, and packaging updated to 0.1.9.
+
+---
+
 ## Version 0.1.8 (2025-12-07)
 
 ### 🚩 Config & Dependency Updates
