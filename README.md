@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.10
+# Mem0 Dify Plugin v0.1.11
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,12 +29,12 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.10)
-- **Credential Ordering**: Reordered provider fields for a smoother setup (async_mode, expiration, LLM, instructions, custom prompts, embedder, collection override, vector DB, enable graph, graph DB, reranker).
-- **Collection Override Only**: Simplified to a single `Collection name (override the JSON config)` field; the old Memory name field was removed (continues from 0.1.9).
+### What's New (v0.1.11)
+- **Clean Credentials**: Removed the duplicate Expiration Time field and ensured the memory_name credential is fully dropped.
+- **Ordered Fields**: Finalized display order (Async Mode → Expiration Time → LLM → Instructions → Custom Fact Prompt → Custom Update Prompt → Embedder → Collection override → Vector DB → Enable Graph → Graph DB → Reranker).
+- **Collection Override Only**: Single `Collection name (override the JSON config)` field retained; memory_name removed.
 - **Project Instructions & Prompts**: `instructions` (2048 chars), `custom_fact_extraction_prompt`, and `custom_update_memory_prompt` flow into Mem0 config/project settings.
 - **Global Expiration**: `expiration_time` credential (e.g., `30d`, `2h`) enforces a global `expiration_date` for add_memory.
-- **Mem0 Fork Dependency**: Continues to install Mem0 from the `sysam68/mem0` fork to pick up local-mode fixes.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -394,6 +394,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.1.11 | 2025-12-07 | Credential order cleanup, duplicate expiration removed, memory_name fully removed |
 | v0.1.9 | 2025-12-07 | Collection override simplification, project instructions, global expiration, custom prompts |
 | v0.1.8 | 2025-12-05 | Graph enable toggle (default off), collection_name override, Mem0 fork dependency |
 | v0.1.7 | 2025-12-05 | Added Memgraph graph backend dependency (`langchain-memgraph`) |
