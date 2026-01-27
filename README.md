@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.11
+# Mem0 Dify Plugin v0.1.13
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,12 +29,10 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.11)
-- **Clean Credentials**: Removed the duplicate Expiration Time field and ensured the memory_name credential is fully dropped.
-- **Ordered Fields**: Finalized display order (Async Mode → Expiration Time → LLM → Instructions → Custom Fact Prompt → Custom Update Prompt → Embedder → Collection override → Vector DB → Enable Graph → Graph DB → Reranker).
-- **Collection Override Only**: Single `Collection name (override the JSON config)` field retained; memory_name removed.
-- **Project Instructions & Prompts**: `instructions` (2048 chars), `custom_fact_extraction_prompt`, and `custom_update_memory_prompt` flow into Mem0 config/project settings.
-- **Global Expiration**: `expiration_time` credential (e.g., `30d`, `2h`) enforces a global `expiration_date` for add_memory.
+### What's New (v0.1.13)
+- **Neo4j Fallback**: When `bolt://mem0-neo4j:7687` is unreachable, retry via `host.docker.internal:8687` (or localhost) to avoid container network mismatches.
+- **No Config Change Needed**: The fallback only kicks in when the Docker DNS host is not reachable.
+- **Neo4j Auth Fix**: Avoids unintended bearer auth when `langchain_neo4j` adds the `token` parameter and Mem0 passes `database` positionally.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -394,6 +392,8 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.1.13 | 2026-01-12 | Neo4j fallback + langchain_neo4j token positional fix (prevents bearer auth) |
+| v0.1.12 | 2026-01-12 | Ollama tool schema cleanup + tool_calls normalization for graph stability |
 | v0.1.11 | 2025-12-07 | Credential order cleanup, duplicate expiration removed, memory_name fully removed |
 | v0.1.9 | 2025-12-07 | Collection override simplification, project instructions, global expiration, custom prompts |
 | v0.1.8 | 2025-12-05 | Graph enable toggle (default off), collection_name override, Mem0 fork dependency |

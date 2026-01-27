@@ -15,9 +15,10 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import socket
 import threading
 from typing import Any
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse, urlunparse
 
 from .constants import PGVECTOR_MAX_CONNECTIONS, PGVECTOR_MIN_CONNECTIONS
 from .logger import get_logger
@@ -34,6 +35,48 @@ def _raise_config_error(msg: str) -> None:
     """
     logger.error(msg)
     raise ValueError(msg)
+
+
+def _can_connect(host: str, port: int, timeout: float = 1.0) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def _maybe_rewrite_neo4j_url(config: dict[str, Any]) -> None:
+    """Fallback Neo4j URL to host.docker.internal when container DNS isn't reachable."""
+    url = config.get("url")
+    if not isinstance(url, str) or not url.strip():
+        return
+    parsed = urlparse(url)
+    host = parsed.hostname
+    port = parsed.port or 7687
+    if not host:
+        return
+
+    if host not in {"mem0-neo4j", "neo4j-mem0"}:
+        return
+
+    if _can_connect(host, port):
+        return
+
+    fallback_candidates = [
+        ("host.docker.internal", 8687),
+        ("localhost", 8687),
+    ]
+    for fallback_host, fallback_port in fallback_candidates:
+        if _can_connect(fallback_host, fallback_port):
+            netloc = f"{fallback_host}:{fallback_port}"
+            config["url"] = urlunparse(parsed._replace(netloc=netloc))
+            logger.warning(
+                "Neo4j host %s:%s not reachable; using %s",
+                host,
+                port,
+                netloc,
+            )
+            return
 
 
 def _parse_json_block(raw: str | dict[str, Any] | None, field_name: str) -> dict[str, Any] | None:
@@ -307,6 +350,10 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
         graph_store = _parse_json_block(
             credentials.get("local_graph_db_json"), "local_graph_db_json",
         )
+        if graph_store and graph_store.get("provider") == "neo4j":
+            cfg = graph_store.get("config")
+            if isinstance(cfg, dict):
+                _maybe_rewrite_neo4j_url(cfg)
 
         config: dict[str, Any] = {
             "llm": llm,

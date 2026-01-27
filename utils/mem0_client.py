@@ -18,6 +18,109 @@ from .logger import get_logger
 logger = get_logger(__name__)
 
 
+def _normalize_tool_calls_response(response: Any) -> Any:
+    """Decode tool call arguments when returned as JSON strings."""
+    if not isinstance(response, dict):
+        return response
+    tool_calls = response.get("tool_calls")
+    if not isinstance(tool_calls, list):
+        return response
+    for call in tool_calls:
+        if not isinstance(call, dict):
+            continue
+        args_obj = call.get("arguments")
+        if args_obj is None and isinstance(call.get("function"), dict):
+            args_obj = call["function"].get("arguments")
+        if isinstance(args_obj, str):
+            try:
+                args_obj = json.loads(args_obj)
+                call["arguments"] = args_obj
+            except Exception:
+                continue
+        if isinstance(args_obj, dict):
+            for key in ("entities", "relations"):
+                val = args_obj.get(key)
+                if isinstance(val, str):
+                    try:
+                        args_obj[key] = json.loads(val)
+                    except Exception:
+                        continue
+    return response
+
+
+def _strip_additional_properties(payload: Any) -> Any:
+    """Recursively drop JSON Schema additionalProperties entries for Ollama /v1."""
+    if isinstance(payload, dict):
+        return {
+            key: _strip_additional_properties(value)
+            for key, value in payload.items()
+            if key != "additionalProperties"
+        }
+    if isinstance(payload, list):
+        return [_strip_additional_properties(item) for item in payload]
+    return payload
+
+
+def _patch_graph_llm(memory_obj: Any) -> None:
+    """Patch graph LLM to normalize tool call payloads from Ollama/OpenAI."""
+    graph = getattr(memory_obj, "graph", None)
+    llm = getattr(graph, "llm", None)
+    generate = getattr(llm, "generate_response", None)
+    if not callable(generate):
+        return
+    if getattr(generate, "_mem0_dify_tool_patch", False):
+        return
+
+    def patched_generate_response(*args, **kwargs):
+        if "tools" in kwargs and kwargs["tools"]:
+            kwargs = dict(kwargs)
+            kwargs["tools"] = _strip_additional_properties(kwargs["tools"])
+        response = generate(*args, **kwargs)
+        return _normalize_tool_calls_response(response)
+
+    patched_generate_response._mem0_dify_tool_patch = True  # type: ignore[attr-defined]
+    llm.generate_response = patched_generate_response
+
+
+def _patch_neo4j_graph_token() -> None:
+    """Patch langchain_neo4j to avoid token/database positional mismatch."""
+    try:
+        from langchain_neo4j.graphs.neo4j_graph import Neo4jGraph
+    except Exception:
+        return
+
+    init = Neo4jGraph.__init__
+    if getattr(init, "_mem0_dify_token_patch", False):
+        return
+
+    try:
+        import inspect
+
+        if "token" not in inspect.signature(init).parameters:
+            return
+    except Exception:
+        return
+
+    def patched_init(
+        self,
+        url=None,
+        username=None,
+        password=None,
+        token=None,
+        database=None,
+        *args,
+        **kwargs,
+    ):
+        if token is not None and database is None and username and password:
+            database = token
+            token = None
+        return init(self, url, username, password, token, database, *args, **kwargs)
+
+    patched_init._mem0_dify_token_patch = True  # type: ignore[attr-defined]
+    Neo4jGraph.__init__ = patched_init
+    logger.info("Patched Neo4jGraph to avoid token/db positional mismatch")
+
+
 def _apply_project_settings(
     memory_obj: Any,
     enable_graph: bool,
@@ -120,11 +223,13 @@ class LocalClient:
 
         """
         logger.info("Initializing LocalClient")
+        _patch_neo4j_graph_token()
         config = build_local_mem0_config(credentials)
         self.enable_graph = bool(config.get("enable_graph"))
         self.custom_instructions = config.get("custom_instructions")
         self.memory = Memory.from_config(config)
         _apply_project_settings(self.memory, self.enable_graph, self.custom_instructions)
+        _patch_graph_llm(self.memory)
         self.use_custom_prompt = True
         self.custom_prompt = CUSTOM_PROMPT
         logger.info("LocalClient initialized successfully")
@@ -419,8 +524,10 @@ class AsyncLocalClient:
         async with self._create_lock:
             if self.memory is None:
                 logger.info("Creating AsyncMemory instance")
+                _patch_neo4j_graph_token()
                 self.memory = await AsyncMemory.from_config(self.config)
                 _apply_project_settings(self.memory, self.enable_graph, self.custom_instructions)
+                _patch_graph_llm(self.memory)
                 logger.info("AsyncMemory instance created successfully")
         return self.memory
 

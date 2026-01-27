@@ -6,7 +6,7 @@
 set -e
 
 PLUGIN_NAME="mem0ai-local"
-VERSION="0.1.11"
+VERSION="0.1.13"
 OUTPUT_FILE="${PLUGIN_NAME}-${VERSION}.difypkg"
 TEMP_DIR="temp_package"
 

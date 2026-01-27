@@ -1,5 +1,29 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.1.13 (2026-01-12)
+
+### 🔌 Neo4j Connection Fallback
+
+- When `bolt://mem0-neo4j:7687` cannot be reached (common when the Dify container
+  is not on the Mem0 network), automatically retry using `host.docker.internal:8687`
+  or `localhost:8687` if reachable.
+- This prevents credential validation failures while keeping the original URL when
+  Docker DNS resolution works.
+- Patched `langchain_neo4j` token parameter mismatch to avoid unintended bearer
+  authentication when Mem0 passes `database` positionally.
+
+---
+
+## Version 0.1.12 (2026-01-12)
+
+### 🧩 Ollama Tool-Calling Fixes
+
+- Stripped `additionalProperties` from tool schemas before calling Ollama `/v1` to prevent 500 "unexpected end of JSON input".
+- Normalized tool call arguments when returned as JSON strings, preventing `string indices must be integers` in graph memory.
+- Applied patches for both sync and async local clients when graph mode is enabled.
+
+---
+
 ## Version 0.1.11 (2025-12-07)
 
 ### 🧭 Credential Cleanup
