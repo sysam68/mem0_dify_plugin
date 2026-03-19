@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import hashlib
+import inspect
 import json
 import threading
 from typing import Any
@@ -217,6 +218,18 @@ def _count_payload_messages(messages: Any) -> int:
     return len(messages) if isinstance(messages, (list, tuple)) else 0
 
 
+def _supports_expiration_argument(method: Any) -> bool:
+    """Return True when the given add method supports expiration_date."""
+    try:
+        return "expiration_date" in inspect.signature(method).parameters
+    except Exception:
+        return False
+
+
+_SYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(Memory.add)
+_ASYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(AsyncMemory.add)
+
+
 class LocalClient:
     """Local Mem0 client using configured providers."""
 
@@ -313,7 +326,8 @@ class LocalClient:
                 - memory_type (str, optional): Type of memory. Defaults to conversational or factual.
                   Use "procedural_memory" for procedural type.
                 - prompt (str, optional): Custom prompt to use for memory creation.
-                - expiration_date (str, optional): Expiration date/TTL (e.g., YYYY-MM-DD or ISO string).
+                - expiration_date (str, optional): Expiration date/TTL (e.g., YYYY-MM-DD or ISO string),
+                  only when supported by the installed local Mem0 SDK.
 
         Returns:
             dict: Result of the memory addition, typically with items added/updated (in "results"),
@@ -338,8 +352,14 @@ class LocalClient:
         if metadata is not None:
             kwargs["metadata"] = metadata
         expiration_date = payload.get("expiration_date")
-        if expiration_date:
+        if expiration_date and _SYNC_ADD_SUPPORTS_EXPIRATION:
             kwargs["expiration_date"] = expiration_date
+        elif expiration_date:
+            logger.warning(
+                "Ignoring expiration_date for sync Mem0 client because installed Memory.add does not support it (user_id: %s, requested_expiration_date: %s)",
+                payload.get("user_id") or "-",
+                expiration_date,
+            )
         if self.use_custom_prompt:
             kwargs["prompt"] = self.custom_prompt
 
@@ -788,7 +808,8 @@ class AsyncLocalClient:
                 - memory_type (str, optional): Type of memory. Defaults to conversational or factual.
                   Use "procedural_memory" for procedural type.
                 - prompt (str, optional): Custom prompt to use for memory creation.
-                - expiration_date (str, optional): Expiration date/TTL (e.g., YYYY-MM-DD or ISO string).
+                - expiration_date (str, optional): Expiration date/TTL (e.g., YYYY-MM-DD or ISO string),
+                  only when supported by the installed local Mem0 SDK.
 
         Returns:
             dict: Result of the memory addition, typically with items added/updated (in "results"),
@@ -813,8 +834,14 @@ class AsyncLocalClient:
         if metadata is not None:
             kwargs["metadata"] = metadata
         expiration_date = payload.get("expiration_date")
-        if expiration_date:
+        if expiration_date and _ASYNC_ADD_SUPPORTS_EXPIRATION:
             kwargs["expiration_date"] = expiration_date
+        elif expiration_date:
+            logger.warning(
+                "Ignoring expiration_date for async Mem0 client because installed AsyncMemory.add does not support it (user_id: %s, requested_expiration_date: %s)",
+                payload.get("user_id") or "-",
+                expiration_date,
+            )
         if self.use_custom_prompt:
             kwargs["prompt"] = self.custom_prompt
 

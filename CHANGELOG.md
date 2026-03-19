@@ -1,5 +1,16 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.3 (2026-03-19)
+
+### ⏳ Expiration Compatibility Guard
+
+- The plugin now detects whether the installed local `Memory.add()` / `AsyncMemory.add()` implementation actually supports `expiration_date`.
+- When expiration is supported, the plugin forwards it as before.
+- When expiration is not supported by the installed local Mem0 SDK, the plugin logs a warning and stores the memory without expiration instead of failing the add request.
+- This fixes runtime errors such as `TypeError: Memory.add() got an unexpected keyword argument 'expiration_date'`.
+
+---
+
 ## Version 0.2.2 (2026-03-19)
 
 ### 🐞 Debug Flag Handling & Better Failure Diagnostics
@@ -8,6 +19,7 @@
 - Outside debug mode, the plugin still resolves its log level from `LOG_LEVEL`.
 - Add-memory failures now log explicit exception causes and execution context without exposing user message content.
 - Async add failures are now logged when background futures complete, improving visibility for non-blocking writes.
+- When the installed local Mem0 SDK does not support `expiration_date` on `Memory.add()`, the plugin now logs a warning and stores the memory without expiration instead of failing the add request.
 - Updated packaging and release artifacts to version `0.2.2`.
 
 ---

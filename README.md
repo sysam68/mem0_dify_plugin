@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.2
+# Mem0 Dify Plugin v0.2.3
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,11 +29,12 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.2.2)
+### What's New (v0.2.3)
 - **Dify Debug Flags Honored**: `DEBUG=True` or `FLASK_DEBUG=True` now forces plugin logs to `DEBUG`, even when `LOG_LEVEL` is set differently.
 - **More Explicit Add-Memory Errors**: Memory-addition failures now log the exception type, message, and execution context to make root-cause analysis practical.
 - **Async Failure Visibility**: Background async add failures are now logged when the future completes instead of silently disappearing behind an accepted request.
-- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.2`.
+- **Expiration Compatibility Guard**: When the installed local Mem0 SDK does not support `expiration_date` on `Memory.add()`, the plugin now logs a warning and stores the memory without expiration instead of failing the whole add.
+- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.3`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -257,6 +258,13 @@ If `DEBUG=True` or `FLASK_DEBUG=True`, the plugin forces `DEBUG` logging regardl
 
 If `LOG_LEVEL` is not set or contains an unsupported value, the plugin falls back to `DEBUG`.
 
+### Expiration Compatibility
+
+The Mem0 documentation shows `expiration_date` support for some clients, but local `Memory` / `AsyncMemory` support depends on the installed SDK version.
+
+- If the installed local SDK supports `expiration_date`, the plugin forwards it normally.
+- If the installed local SDK does not support it, the plugin logs a warning and stores the memory without expiration instead of failing the request.
+
 ### LLM Configuration (`local_llm_json`)
 
 ```json
@@ -420,6 +428,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.2.3 | 2026-03-19 | Guard unsupported `expiration_date` in local Mem0 SDK, preserve add without expiration, align release artifacts |
 | v0.2.2 | 2026-03-19 | Honor `DEBUG`/`FLASK_DEBUG`, improve add-memory failure diagnostics, align release artifacts |
 | v0.2.1 | 2026-03-19 | Global `LOG_LEVEL` support with `DEBUG` fallback; release metadata and packaging aligned |
 | v0.1.13 | 2026-01-12 | Neo4j fallback + langchain_neo4j token positional fix (prevents bearer auth) |
