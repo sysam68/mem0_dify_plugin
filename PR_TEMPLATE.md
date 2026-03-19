@@ -13,23 +13,23 @@ Please provide the following metadata of your plugin to make it easier for the r
 
 -->
 
-- **Plugin Author**: beersoccer
+- **Plugin Author**: sysam68
 
-- **Plugin Name**: mem0ai
+- **Plugin Name**: mem0ai-local
 
-- **Repository URL**: https://github.com/beersoccer/mem0_dify_plugin
+- **Repository URL**: https://github.com/sysam68/mem0_dify_plugin
 
 ## 2. Submission Type
 
-- [x] New plugin submission
+- [ ] New plugin submission
 
-- [ ] Version update for existing plugin
+- [x] Version update for existing plugin
 
 ## 3. Description
 
 <!-- Please briefly describe the purpose of the new plugin or the updates made to the existing plugin -->
 
-This plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications. The plugin operates exclusively in **local mode**, allowing users to configure and manage their own LLM, embedding models, vector databases, graph databases, and rerankers.
+This submission updates `mem0ai-local` to **v0.2.1**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
 
 ### Key Features:
 
@@ -48,8 +48,9 @@ This plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer int
   - **Sync Mode**: Recommended for testing, all operations block until completion for immediate result visibility
 
 - **Local-Only Architecture**:
-  - All data stored in user's own infrastructure (vector database, graph database)
-  - No data sent to external servers
+  - Memory data is stored in the user's own infrastructure (vector database, graph database)
+  - The plugin does not proxy data through a vendor-owned Mem0 SaaS backend
+  - Requests are sent only to services explicitly configured by the user
   - Complete user control over data storage and processing
 
 - **Production-Ready Features**:
@@ -57,6 +58,13 @@ This plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer int
   - Robust error handling ensuring workflow continuity
   - Database connection pool optimization for high concurrency
   - Unified logging configuration for better debugging
+  - Global `LOG_LEVEL` support with fallback to `DEBUG`
+
+### v0.2.1 Highlights:
+
+- Log level is now driven by the container-wide `LOG_LEVEL` environment variable (`DEBUG`, `INFO`, `WARNING`, `ERROR`)
+- Safe fallback to `DEBUG` when `LOG_LEVEL` is missing or invalid
+- Release metadata, packaging, install docs, and submission files aligned on version `0.2.1`
 
 ### Configuration:
 
@@ -113,13 +121,14 @@ Based on Dify Plugin Privacy Protection [Guidelines](https://docs.dify.ai/plugin
 
 ### Data Collection
 
-**No user personal data is collected by this plugin.**
+**The plugin does not independently collect user personal data.**
 
 This plugin operates exclusively in **local mode**, which means:
 
-- **All data is stored in the user's own infrastructure** - Users configure and manage their own vector database and graph database
-- **No data is sent to external servers** - All processing happens locally using user-configured services (LLM, embedding models, databases)
-- **Complete user control** - Users have full control over where and how their data is stored
+- **Memory data is stored in the user's own infrastructure** - Users configure and manage their own vector database and graph database
+- **No plugin-owned relay service is used** - The plugin communicates directly with the services configured by the user
+- **External traffic depends on user configuration** - If users configure hosted LLM, embedding, or reranker providers, relevant data is sent directly to those providers
+- **Complete user control** - Users have full control over where and how their data is stored and processed
 
 The plugin only processes:
 - Conversation history (chat messages) - stored in user's own vector database
@@ -128,7 +137,7 @@ The plugin only processes:
 
 **No personal identification information (PII) is required or collected beyond user-provided identifiers (user_id, agent_id, run_id).**
 
-All API keys and credentials are stored locally in the user's Dify instance configuration and are not shared with any third parties. The plugin only communicates with services configured by the user (their LLM, embedding, and database services).
+All API keys and credentials are stored locally in the user's Dify instance configuration and are not shared by the plugin with unrelated third parties. The plugin only communicates with services configured by the user (their LLM, embedding, reranker, vector database, and graph database services).
 
 ### Privacy Policy
 
@@ -140,4 +149,3 @@ All API keys and credentials are stored locally in the user's Dify instance conf
 - User's complete control over data
 - No third-party data sharing
 - User's responsibility for data security and compliance
-

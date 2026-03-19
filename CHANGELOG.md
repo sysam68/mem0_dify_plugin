@@ -1,5 +1,17 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.1 (2026-03-19)
+
+### 🪵 Global Log Level & Release Alignment
+
+- The plugin now resolves its log level from the container-wide `LOG_LEVEL` environment variable.
+- Supported values are `DEBUG`, `INFO`, `WARNING`, and `ERROR`.
+- When `LOG_LEVEL` is missing or invalid, the plugin falls back to `DEBUG`.
+- Updated release artifacts and documentation to consistently reference version `0.2.1`.
+- Aligned submission metadata with the current manifest and the verified Git origin repository.
+
+---
+
 ## Version 0.1.13 (2026-01-12)
 
 ### 🔌 Neo4j Connection Fallback

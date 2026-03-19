@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.1.13
+# Mem0 Dify Plugin v0.2.1
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,10 +29,10 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.1.13)
-- **Neo4j Fallback**: When `bolt://mem0-neo4j:7687` is unreachable, retry via `host.docker.internal:8687` (or localhost) to avoid container network mismatches.
-- **No Config Change Needed**: The fallback only kicks in when the Docker DNS host is not reachable.
-- **Neo4j Auth Fix**: Avoids unintended bearer auth when `langchain_neo4j` adds the `token` parameter and Mem0 passes `database` positionally.
+### What's New (v0.2.1)
+- **Global Log Level Support**: The plugin now follows the container-wide `LOG_LEVEL` environment variable with supported values `DEBUG`, `INFO`, `WARNING`, and `ERROR`.
+- **Safe Fallback**: If `LOG_LEVEL` is missing or invalid, the plugin falls back to `DEBUG` so diagnostics stay available by default.
+- **Release Artifact Alignment**: Manifest, packaging script, install guide, and submission metadata are aligned on version `0.2.1`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -73,6 +73,14 @@ Follow the official Dify plugin installation guide:
 ### Configuration
 
 After installation, configure the plugin in the following order:
+
+#### Global Logging Level
+
+The plugin follows the container-wide `LOG_LEVEL` environment variable used by Dify components.
+
+- Supported values: `DEBUG`, `INFO`, `WARNING`, `ERROR`
+- Fallback behavior: if `LOG_LEVEL` is missing or invalid, the plugin uses `DEBUG`
+- Scope: this affects plugin logger output routed through Dify's `plugin_logger_handler`
 
 #### Step 1: Choose Operation Mode
 
@@ -183,6 +191,7 @@ Once configured, all 8 tools are available in your workflows!
 
 - **[CHANGELOG.md](CHANGELOG.md)** - Detailed changelog and examples
 - **[INSTALL.md](INSTALL.md)** - Installation guide
+- **[GUIDE.md](GUIDE.md)** - Detailed configuration guide
 - **[BUGFIX.md](BUGFIX.md)** - Known issues and fixes
 - **[Mem0 Official Docs](https://docs.mem0.ai)** - Full API documentation
 
@@ -233,6 +242,16 @@ search(
 Set `async_mode` in plugin credentials:
 - `true` (default) - Async mode, recommended for production
 - `false` - Sync mode, recommended for testing
+
+### Global Logging Level
+
+Set `LOG_LEVEL` at the Dify container level:
+- `DEBUG` - Most verbose, recommended while diagnosing configuration/runtime issues
+- `INFO` - Standard operational visibility
+- `WARNING` - Warnings and errors only
+- `ERROR` - Errors only
+
+If `LOG_LEVEL` is not set or contains an unsupported value, the plugin falls back to `DEBUG`.
 
 ### LLM Configuration (`local_llm_json`)
 
@@ -363,7 +382,7 @@ When operations timeout or encounter errors:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/beersoccer/mem0_dify_plugin.git
+   git clone https://github.com/sysam68/mem0_dify_plugin.git
    cd mem0_dify_plugin
    ```
 
@@ -375,6 +394,11 @@ When operations timeout or encounter errors:
 3. **Run locally**
    ```bash
    python -m main
+   ```
+
+4. **Build the plugin package**
+   ```bash
+   ./build_package.sh
    ```
 
 ### Testing
@@ -392,6 +416,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.2.1 | 2026-03-19 | Global `LOG_LEVEL` support with `DEBUG` fallback; release metadata and packaging aligned |
 | v0.1.13 | 2026-01-12 | Neo4j fallback + langchain_neo4j token positional fix (prevents bearer auth) |
 | v0.1.12 | 2026-01-12 | Ollama tool schema cleanup + tool_calls normalization for graph stability |
 | v0.1.11 | 2025-12-07 | Credential order cleanup, duplicate expiration removed, memory_name fully removed |

@@ -5,6 +5,11 @@
 
 set -e
 
+PLUGIN_VERSION="0.2.1"
+REPO_NAME="mem0_dify_plugin"
+DEFAULT_REMOTE_URL="https://github.com/sysam68/mem0_dify_plugin.git"
+CURRENT_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "$DEFAULT_REMOTE_URL")
+
 echo "🚀 Preparing Mem0 Dify Plugin for upload to GitHub..."
 echo ""
 
@@ -25,8 +30,8 @@ if [ ! -f "LICENSE" ]; then
 MIT License
 
 Copyright (c) 2025 yevanchen
-Extensively Refactored and Significantly Enhanced by: beersoccer
-Copyright (c) 2025 beersoccer
+Maintained and enhanced by: sysam68
+Copyright (c) 2026 sysam68
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -67,33 +72,30 @@ echo "   ✅ Files added"
 
 # 5. Create commit
 echo "💾 Creating Git commit..."
-git commit -m "feat: Mem0 Dify Plugin v0.0.8
+git commit -m "chore: prepare Mem0 Dify Plugin v${PLUGIN_VERSION}
 
-- 8 complete memory management tools
-- Full Mem0 API v2 support
-- Advanced filters (AND/OR logic)
-- Multi-entity support (user/agent/app/run)
-- Metadata system
-- 4 language support (en/zh/pt/ja)
-- 100% backward compatible" || echo "   ℹ️  No new changes to commit"
+- align manifest and packaging metadata
+- refresh release documentation
+- prepare plugin package for distribution" || echo "   ℹ️  No new changes to commit"
 
 echo ""
 echo "✅ Preparation complete!"
 echo ""
 echo "📋 Next steps:"
 echo ""
-echo "1. Create a new repository on GitHub:"
-echo "   Visit: https://github.com/new"
-echo "   Name: dify-plugin-mem0"
-echo "   ❌ Do NOT add README, .gitignore, or LICENSE"
+echo "1. Review the target repository and remote:"
+echo "   Repository: ${REPO_NAME}"
+echo "   Remote: ${CURRENT_REMOTE_URL}"
 echo ""
-echo "2. Add remote repository and push (replace yourusername):"
-echo "   git remote add origin https://github.com/yourusername/dify-plugin-mem0.git"
-echo "   git branch -M main"
-echo "   git push -u origin main"
+echo "2. Push the current branch:"
+echo "   git push origin HEAD"
 echo ""
-echo "3. Install in Dify:"
+echo "3. Build the plugin package:"
+echo "   ./build_package.sh"
+echo ""
+echo "4. Install in Dify:"
 echo "   Settings → Plugins → Install from GitHub"
-echo "   Enter: yourusername/dify-plugin-mem0"
+echo "   Enter: sysam68/mem0_dify_plugin"
+echo "   Or upload: mem0ai-local-${PLUGIN_VERSION}.difypkg"
 echo ""
 echo "🎉 Done!"

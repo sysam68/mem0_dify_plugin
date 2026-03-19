@@ -11,6 +11,13 @@ Follow the official Dify plugin installation guide:
 
 ## Configuration Steps
 
+### Global Logging Level
+
+The plugin log level follows the container-wide `LOG_LEVEL` environment variable used by Dify components.
+
+- Supported values: `DEBUG`, `INFO`, `WARNING`, `ERROR`
+- Fallback: `DEBUG` when `LOG_LEVEL` is not set or contains an invalid value
+
 ### Step 1: Choose Operation Mode
 
 First, select the operation mode in plugin credentials:
