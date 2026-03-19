@@ -8,9 +8,11 @@ import hashlib
 import inspect
 import json
 import threading
+import traceback
 from datetime import date, datetime, timezone
 from typing import Any
 
+import mem0.memory.main as mem0_main
 from mem0 import AsyncMemory, Memory
 
 from .config_builder import build_local_mem0_config
@@ -327,6 +329,33 @@ def _normalize_add_messages(messages: Any, *, user_id: str | None = None) -> Any
         )
 
     return normalized
+
+
+def _safe_mem0_message_dicts(messages: Any) -> list[dict[str, Any]]:
+    """Return only Mem0-compatible message dicts, converting raw strings when possible."""
+    normalized = _normalize_add_messages(messages)
+    if isinstance(normalized, dict):
+        normalized = [normalized]
+    if isinstance(normalized, str):
+        normalized = [{"role": "user", "content": normalized}]
+    if not isinstance(normalized, (list, tuple)):
+        return []
+    return [
+        dict(item)
+        for item in normalized
+        if isinstance(item, dict) and item.get("role") is not None and item.get("content") is not None
+    ]
+
+
+def _safe_mem0_messages_to_text(messages: Any) -> str:
+    """Build the text form Mem0 expects without failing on malformed items."""
+    parts: list[str] = []
+    for message in _safe_mem0_message_dicts(messages):
+        role = message.get("role")
+        content = message.get("content")
+        if role in {"system", "user", "assistant"}:
+            parts.append(f"{role}: {content}")
+    return "\n".join(parts) + ("\n" if parts else "")
 
 
 def _coerce_expiration_date(expiration_date: Any) -> str | None:
@@ -654,7 +683,49 @@ def _patch_local_mem0_expiration() -> None:
     _patch_async_read_expiration()
 
 
+def _patch_mem0_message_handling() -> None:
+    """Make Mem0 message parsing and graph add resilient to malformed items."""
+    parse_messages = getattr(mem0_main, "parse_messages", None)
+    if callable(parse_messages) and not getattr(parse_messages, "_mem0_dify_safe_patch", False):
+        def patched_parse_messages(messages):
+            return _safe_mem0_messages_to_text(messages)
+
+        patched_parse_messages._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+        mem0_main.parse_messages = patched_parse_messages
+
+    for cls in (Memory, AsyncMemory):
+        original_should_use = getattr(cls, "_should_use_agent_memory_extraction")
+        if not getattr(original_should_use, "_mem0_dify_safe_patch", False):
+            def _make_should_use(method):
+                def patched(self, messages, metadata):
+                    safe_messages = _safe_mem0_message_dicts(messages)
+                    safe_metadata = metadata if isinstance(metadata, dict) else {}
+                    return method(self, safe_messages, safe_metadata)
+
+                patched._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+                return patched
+
+            setattr(cls, "_should_use_agent_memory_extraction", _make_should_use(original_should_use))
+
+    original_sync_add_to_graph = Memory._add_to_graph
+    if not getattr(original_sync_add_to_graph, "_mem0_dify_safe_patch", False):
+        def patched_sync_add_to_graph(self, messages, filters):
+            return original_sync_add_to_graph(self, _safe_mem0_message_dicts(messages), filters)
+
+        patched_sync_add_to_graph._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+        Memory._add_to_graph = patched_sync_add_to_graph
+
+    original_async_add_to_graph = AsyncMemory._add_to_graph
+    if not getattr(original_async_add_to_graph, "_mem0_dify_safe_patch", False):
+        async def patched_async_add_to_graph(self, messages, filters):
+            return await original_async_add_to_graph(self, _safe_mem0_message_dicts(messages), filters)
+
+        patched_async_add_to_graph._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+        AsyncMemory._add_to_graph = patched_async_add_to_graph
+
+
 _patch_local_mem0_expiration()
+_patch_mem0_message_handling()
 _SYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(Memory.add)
 _ASYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(AsyncMemory.add)
 
@@ -791,6 +862,9 @@ class LocalClient:
         try:
             result = self.memory.add(messages, **kwargs)
         except Exception as error:
+            traceback_text = "".join(
+                traceback.format_exception(type(error), error, error.__traceback__),
+            ).strip()
             logger.error(
                 "Memory addition failed in sync Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, message_shapes: %s, metadata_present: %s, expiration_date: %s): %s",
                 payload.get("user_id") or "-",
@@ -802,6 +876,8 @@ class LocalClient:
                 expiration_date or "-",
                 format_exception(error),
             )
+            if traceback_text:
+                logger.error("Sync Mem0 add traceback (user_id: %s):\n%s", payload.get("user_id") or "-", traceback_text)
             logger.debug(
                 "Stack trace for sync Mem0 memory addition failure",
                 exc_info=(type(error), error, error.__traceback__),
@@ -1279,6 +1355,9 @@ class AsyncLocalClient:
                 # Await to ensure persistence before returning
                 result = await self.memory.add(messages, **kwargs)
         except Exception as error:
+            traceback_text = "".join(
+                traceback.format_exception(type(error), error, error.__traceback__),
+            ).strip()
             logger.error(
                 "Memory addition failed in async Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, message_shapes: %s, metadata_present: %s, expiration_date: %s): %s",
                 payload.get("user_id") or "-",
@@ -1290,6 +1369,8 @@ class AsyncLocalClient:
                 expiration_date or "-",
                 format_exception(error),
             )
+            if traceback_text:
+                logger.error("Async Mem0 add traceback (user_id: %s):\n%s", payload.get("user_id") or "-", traceback_text)
             logger.debug(
                 "Stack trace for async Mem0 memory addition failure",
                 exc_info=(type(error), error, error.__traceback__),

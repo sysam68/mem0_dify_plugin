@@ -1,5 +1,15 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.6 (2026-03-19)
+
+### 🔎 Deeper Add-Memory Diagnostics
+
+- Patched Mem0 message parsing and graph-add handling defensively so malformed message items no longer fail with opaque `string indices must be integers` errors.
+- Add-failure logs now emit a formatted traceback text because the plugin container was not showing Python traceback details from `exc_info`.
+- Updated release metadata and packaging artifacts to version `0.2.6`.
+
+---
+
 ## Version 0.2.5 (2026-03-19)
 
 ### 🛡️ Add Payload Hardening
