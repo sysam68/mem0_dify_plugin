@@ -226,6 +226,20 @@ def _count_payload_messages(messages: Any) -> int:
     return len(messages) if isinstance(messages, (list, tuple)) else 0
 
 
+def _message_shapes(messages: Any) -> list[str]:
+    """Return a compact representation of the add-message payload shape."""
+    if not isinstance(messages, (list, tuple)):
+        return [type(messages).__name__]
+
+    shapes: list[str] = []
+    for item in messages:
+        if isinstance(item, dict):
+            shapes.append(f"dict({item.get('role', '-')})")
+        else:
+            shapes.append(type(item).__name__)
+    return shapes
+
+
 def _supports_expiration_argument(method: Any) -> bool:
     """Return True when the given add method supports expiration_date."""
     try:
@@ -237,6 +251,82 @@ def _supports_expiration_argument(method: Any) -> bool:
 def _copy_dict(value: Any) -> dict[str, Any]:
     """Return a shallow copy when value is a dict, else an empty dict."""
     return dict(value) if isinstance(value, dict) else {}
+
+
+def _normalize_add_metadata(metadata: Any, *, user_id: str | None = None) -> dict[str, Any] | None:
+    """Normalize metadata to a dict, dropping unsupported scalar/list shapes."""
+    if metadata is None:
+        return None
+
+    parsed_metadata = metadata
+    if isinstance(parsed_metadata, str):
+        try:
+            parsed_metadata = json.loads(parsed_metadata)
+        except (TypeError, ValueError):
+            logger.warning(
+                "Ignoring metadata because it is not valid JSON object text (user_id: %s, metadata_type: %s)",
+                user_id or "-",
+                type(metadata).__name__,
+            )
+            return None
+
+    if isinstance(parsed_metadata, dict):
+        return dict(parsed_metadata)
+
+    logger.warning(
+        "Ignoring metadata because Mem0 add expects a JSON object (user_id: %s, metadata_type: %s)",
+        user_id or "-",
+        type(parsed_metadata).__name__,
+    )
+    return None
+
+
+def _normalize_add_messages(messages: Any, *, user_id: str | None = None) -> Any:
+    """Normalize add-message payloads to Mem0's expected list[dict] shape."""
+    if isinstance(messages, str):
+        return messages
+
+    if isinstance(messages, dict):
+        return messages
+
+    if not isinstance(messages, (list, tuple)):
+        return messages
+
+    normalized: list[dict[str, Any]] = []
+    skipped = 0
+    converted = 0
+
+    for item in messages:
+        if isinstance(item, dict):
+            role = item.get("role")
+            content = item.get("content")
+            if role is None or content is None:
+                skipped += 1
+                continue
+            normalized.append(dict(item))
+            continue
+
+        if isinstance(item, str):
+            text = item.strip()
+            if text:
+                normalized.append({"role": "user", "content": text})
+                converted += 1
+            else:
+                skipped += 1
+            continue
+
+        skipped += 1
+
+    if converted or skipped:
+        logger.warning(
+            "Normalized add-memory message payload before Mem0 call (user_id: %s, converted_strings: %d, skipped_items: %d, resulting_shapes: %s)",
+            user_id or "-",
+            converted,
+            skipped,
+            _message_shapes(normalized),
+        )
+
+    return normalized
 
 
 def _coerce_expiration_date(expiration_date: Any) -> str | None:
@@ -673,12 +763,8 @@ class LocalClient:
             and possibly "relations" if graph store is enabled.
 
         """  # noqa: E501
-        metadata = payload.get("metadata")
-        if isinstance(metadata, str):
-            try:
-                metadata = json.loads(metadata)
-            except (json.JSONDecodeError, TypeError):
-                metadata = None
+        metadata = _normalize_add_metadata(payload.get("metadata"), user_id=payload.get("user_id"))
+        messages = _normalize_add_messages(payload.get("messages"), user_id=payload.get("user_id"))
 
         # Build kwargs only with provided fields (ignore app_id in local)
         kwargs: dict[str, Any] = {}
@@ -702,17 +788,16 @@ class LocalClient:
         if self.use_custom_prompt:
             kwargs["prompt"] = self.custom_prompt
 
-        # Use messages directly if provided; assume upstream has validated inputs
-        messages = payload.get("messages")
         try:
             result = self.memory.add(messages, **kwargs)
         except Exception as error:
             logger.error(
-                "Memory addition failed in sync Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, metadata_present: %s, expiration_date: %s): %s",
+                "Memory addition failed in sync Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, message_shapes: %s, metadata_present: %s, expiration_date: %s): %s",
                 payload.get("user_id") or "-",
                 payload.get("agent_id") or "-",
                 payload.get("run_id") or "-",
                 _count_payload_messages(messages),
+                _message_shapes(messages),
                 metadata is not None,
                 expiration_date or "-",
                 format_exception(error),
@@ -1156,12 +1241,8 @@ class AsyncLocalClient:
 
         """  # noqa: E501
         await self.create()
-        metadata = payload.get("metadata")
-        if isinstance(metadata, str):
-            try:
-                metadata = json.loads(metadata)
-            except (json.JSONDecodeError, TypeError):
-                metadata = None
+        metadata = _normalize_add_metadata(payload.get("metadata"), user_id=payload.get("user_id"))
+        messages = _normalize_add_messages(payload.get("messages"), user_id=payload.get("user_id"))
 
         kwargs: dict[str, Any] = {}
         if payload.get("user_id"):
@@ -1184,7 +1265,6 @@ class AsyncLocalClient:
         if self.use_custom_prompt:
             kwargs["prompt"] = self.custom_prompt
 
-        messages = payload.get("messages")
         # Skip add when messages is empty/blank, return response aligned with mem0 add result shape
         if messages is None or (
             isinstance(messages, str) and messages.strip() == ""
@@ -1200,11 +1280,12 @@ class AsyncLocalClient:
                 result = await self.memory.add(messages, **kwargs)
         except Exception as error:
             logger.error(
-                "Memory addition failed in async Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, metadata_present: %s, expiration_date: %s): %s",
+                "Memory addition failed in async Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, message_shapes: %s, metadata_present: %s, expiration_date: %s): %s",
                 payload.get("user_id") or "-",
                 payload.get("agent_id") or "-",
                 payload.get("run_id") or "-",
                 _count_payload_messages(messages),
+                _message_shapes(messages),
                 metadata is not None,
                 expiration_date or "-",
                 format_exception(error),

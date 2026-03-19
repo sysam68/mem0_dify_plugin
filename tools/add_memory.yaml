@@ -107,9 +107,9 @@ parameters:
       en_US: Expiration (relative)
       zh_Hans: 过期时间（相对）
     human_description:
-      en_US: Optional relative expiration, format <int><unit> where unit is s, min, h, d, m, or Y (e.g., 30d, 2h, 90s). Converted to YYYY-MM-DD and applied only when the installed local Mem0 SDK supports expiration_date on add.
-      zh_Hans: 可选，相对过期时间，格式为 <整数><单位>，单位可选 s、min、h、d、m、Y（例如 30d、2h、90s）。会转换为 YYYY-MM-DD，并仅在本地 Mem0 SDK 的 add 支持 expiration_date 时生效。
-    llm_description: Optional relative expiration, format <int><unit> with unit in {s,min,h,d,m,Y}; converted to YYYY-MM-DD and applied only when supported by the local Mem0 SDK.
+      en_US: Optional relative expiration, format <int><unit> where unit is s, min, h, d, m, or Y (e.g., 30d, 2h, 90s). Converted to YYYY-MM-DD and applied in local Mem0 mode.
+      zh_Hans: 可选，相对过期时间，格式为 <整数><单位>，单位可选 s、min、h、d、m、Y（例如 30d、2h、90s）。会转换为 YYYY-MM-DD，并在本地 Mem0 模式下生效。
+    llm_description: Optional relative expiration, format <int><unit> with unit in {s,min,h,d,m,Y}; converted to YYYY-MM-DD and applied in local Mem0 mode.
     form: llm
 extra:
   python:

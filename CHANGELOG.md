@@ -1,5 +1,16 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.5 (2026-03-19)
+
+### 🛡️ Add Payload Hardening
+
+- Normalized add-memory message payloads before calling local Mem0 so malformed list items no longer propagate as opaque SDK type errors.
+- Rejected non-object metadata shapes explicitly instead of passing them through to Mem0 internals.
+- Extended add-failure logs with message payload shapes to make runtime diagnosis faster.
+- Updated release metadata and packaging artifacts to version `0.2.5`.
+
+---
+
 ## Version 0.2.4 (2026-03-19)
 
 ### ⏳ Local Expiration Support
