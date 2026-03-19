@@ -1,5 +1,17 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.2 (2026-03-19)
+
+### 🐞 Debug Flag Handling & Better Failure Diagnostics
+
+- `DEBUG=True` or `FLASK_DEBUG=True` now forces plugin logging to `DEBUG`, matching Dify container debug behavior.
+- Outside debug mode, the plugin still resolves its log level from `LOG_LEVEL`.
+- Add-memory failures now log explicit exception causes and execution context without exposing user message content.
+- Async add failures are now logged when background futures complete, improving visibility for non-blocking writes.
+- Updated packaging and release artifacts to version `0.2.2`.
+
+---
+
 ## Version 0.2.1 (2026-03-19)
 
 ### 🪵 Global Log Level & Release Alignment
