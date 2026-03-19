@@ -8,6 +8,7 @@ import hashlib
 import inspect
 import json
 import threading
+from datetime import date, datetime, timezone
 from typing import Any
 
 from mem0 import AsyncMemory, Memory
@@ -17,6 +18,8 @@ from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT, MAX_CONCURRENT_MEMORY_OPE
 from .logger import format_exception, get_logger
 
 logger = get_logger(__name__)
+
+EXPIRATION_DATE_KEY = "expiration_date"
 
 
 def _normalize_tool_calls_response(response: Any) -> Any:
@@ -201,15 +204,20 @@ def _normalize_search_results(results: object) -> list[dict[str, Any]]:
     for r in items or []:
         if not isinstance(r, dict):
             continue
-        normalized.append(
-            {
-                "id": r.get("id") or r.get("memory_id") or "",
-                "memory": r.get("memory") or r.get("text") or "",
-                "score": r.get("score") or r.get("similarity", 0.0),
-                "metadata": r.get("metadata") or {},
-                "created_at": r.get("created_at") or r.get("timestamp") or "",
-            },
-        )
+        record = _promote_expiration_date(_copy_dict(r))
+        if _is_expired_memory_record(record):
+            continue
+
+        normalized_record = {
+            "id": record.get("id") or record.get("memory_id") or "",
+            "memory": record.get("memory") or record.get("text") or "",
+            "score": record.get("score") or record.get("similarity", 0.0),
+            "metadata": record.get("metadata") or {},
+            "created_at": record.get("created_at") or record.get("timestamp") or "",
+        }
+        if record.get(EXPIRATION_DATE_KEY):
+            normalized_record[EXPIRATION_DATE_KEY] = record.get(EXPIRATION_DATE_KEY)
+        normalized.append(normalized_record)
     return normalized
 
 
@@ -221,11 +229,342 @@ def _count_payload_messages(messages: Any) -> int:
 def _supports_expiration_argument(method: Any) -> bool:
     """Return True when the given add method supports expiration_date."""
     try:
-        return "expiration_date" in inspect.signature(method).parameters
+        return EXPIRATION_DATE_KEY in inspect.signature(method).parameters
     except Exception:
         return False
 
 
+def _copy_dict(value: Any) -> dict[str, Any]:
+    """Return a shallow copy when value is a dict, else an empty dict."""
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _coerce_expiration_date(expiration_date: Any) -> str | None:
+    """Normalize expiration_date values to strings for payload storage."""
+    if expiration_date is None:
+        return None
+    if isinstance(expiration_date, datetime):
+        return expiration_date.isoformat()
+    if isinstance(expiration_date, date):
+        return expiration_date.isoformat()
+    if isinstance(expiration_date, str):
+        value = expiration_date.strip()
+        return value or None
+    return str(expiration_date)
+
+
+def _merge_expiration_metadata(
+    metadata: dict[str, Any] | None,
+    expiration_date: Any,
+) -> dict[str, Any] | None:
+    """Store expiration_date internally in the Mem0 payload metadata."""
+    normalized_expiration = _coerce_expiration_date(expiration_date)
+    if not normalized_expiration:
+        return metadata
+
+    merged = _copy_dict(metadata)
+    merged[EXPIRATION_DATE_KEY] = normalized_expiration
+    return merged
+
+
+def _extract_expiration_date(record: dict[str, Any]) -> Any:
+    """Return expiration_date from a normalized memory record."""
+    if EXPIRATION_DATE_KEY in record:
+        return record.get(EXPIRATION_DATE_KEY)
+    metadata = record.get("metadata")
+    if isinstance(metadata, dict):
+        return metadata.get(EXPIRATION_DATE_KEY)
+    return None
+
+
+def _parse_expiration_date(expiration_date: Any) -> tuple[date | None, datetime | None]:
+    """Parse expiration_date values as ISO date or datetime."""
+    if expiration_date is None:
+        return None, None
+
+    if isinstance(expiration_date, datetime):
+        return None, expiration_date
+
+    if isinstance(expiration_date, date):
+        return expiration_date, None
+
+    if not isinstance(expiration_date, str):
+        return None, None
+
+    value = expiration_date.strip()
+    if not value:
+        return None, None
+
+    try:
+        if "T" not in value and " " not in value and len(value) <= 10:
+            return date.fromisoformat(value), None
+    except ValueError:
+        pass
+
+    try:
+        return None, datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None, None
+
+
+def _is_expired_expiration_date(expiration_date: Any) -> bool:
+    """Return True when the expiration date is in the past."""
+    parsed_date, parsed_datetime = _parse_expiration_date(expiration_date)
+
+    if parsed_datetime is not None:
+        if parsed_datetime.tzinfo is None:
+            parsed_datetime = parsed_datetime.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        return now > parsed_datetime.astimezone(timezone.utc)
+
+    if parsed_date is not None:
+        return datetime.now(timezone.utc).date() > parsed_date
+
+    return False
+
+
+def _promote_expiration_date(record: dict[str, Any]) -> dict[str, Any]:
+    """Promote expiration_date out of metadata for plugin-facing results."""
+    promoted = _copy_dict(record)
+    metadata = promoted.get("metadata")
+    expiration_date = promoted.get(EXPIRATION_DATE_KEY)
+
+    if isinstance(metadata, dict) and expiration_date is None:
+        expiration_date = metadata.get(EXPIRATION_DATE_KEY)
+
+    if isinstance(metadata, dict) and EXPIRATION_DATE_KEY in metadata:
+        metadata = dict(metadata)
+        metadata.pop(EXPIRATION_DATE_KEY, None)
+        if metadata:
+            promoted["metadata"] = metadata
+        else:
+            promoted.pop("metadata", None)
+
+    if expiration_date is not None:
+        promoted[EXPIRATION_DATE_KEY] = expiration_date
+
+    return promoted
+
+
+def _is_expired_memory_record(record: dict[str, Any]) -> bool:
+    """Return True when a memory record contains an expired expiration_date."""
+    return _is_expired_expiration_date(_extract_expiration_date(record))
+
+
+def _filter_memory_results(results: Any) -> Any:
+    """Promote expiration_date and drop expired memories from SDK results."""
+    if isinstance(results, dict) and isinstance(results.get("results"), list):
+        filtered = dict(results)
+        filtered["results"] = [
+            promoted
+            for item in results["results"]
+            if isinstance(item, dict)
+            for promoted in [_promote_expiration_date(item)]
+            if not _is_expired_memory_record(promoted)
+        ]
+        return filtered
+
+    if isinstance(results, list):
+        return [
+            promoted
+            for item in results
+            if isinstance(item, dict)
+            for promoted in [_promote_expiration_date(item)]
+            if not _is_expired_memory_record(promoted)
+        ]
+
+    if isinstance(results, dict):
+        promoted = _promote_expiration_date(results)
+        if _is_expired_memory_record(promoted):
+            return None
+        return promoted
+
+    return results
+
+
+def _patch_sync_add_expiration() -> None:
+    """Patch local sync Memory.add when installed SDK lacks expiration_date support."""
+    original_add = Memory.add
+    if getattr(original_add, "_mem0_dify_expiration_patch", False):
+        return
+    if _supports_expiration_argument(original_add):
+        return
+
+    def patched_add(
+        self,
+        messages,
+        *,
+        user_id=None,
+        agent_id=None,
+        run_id=None,
+        metadata=None,
+        infer=True,
+        memory_type=None,
+        prompt=None,
+        expiration_date=None,
+    ):
+        merged_metadata = _merge_expiration_metadata(metadata, expiration_date)
+        return original_add(
+            self,
+            messages,
+            user_id=user_id,
+            agent_id=agent_id,
+            run_id=run_id,
+            metadata=merged_metadata,
+            infer=infer,
+            memory_type=memory_type,
+            prompt=prompt,
+        )
+
+    patched_add._mem0_dify_expiration_patch = True  # type: ignore[attr-defined]
+    Memory.add = patched_add
+    logger.info(
+        "Patched local Memory.add to support expiration_date via plugin compatibility layer",
+    )
+
+
+def _patch_async_add_expiration() -> None:
+    """Patch local async AsyncMemory.add when installed SDK lacks expiration_date support."""
+    original_add = AsyncMemory.add
+    if getattr(original_add, "_mem0_dify_expiration_patch", False):
+        return
+    if _supports_expiration_argument(original_add):
+        return
+
+    async def patched_add(
+        self,
+        messages,
+        *,
+        user_id=None,
+        agent_id=None,
+        run_id=None,
+        metadata=None,
+        infer=True,
+        memory_type=None,
+        prompt=None,
+        llm=None,
+        expiration_date=None,
+    ):
+        merged_metadata = _merge_expiration_metadata(metadata, expiration_date)
+        return await original_add(
+            self,
+            messages,
+            user_id=user_id,
+            agent_id=agent_id,
+            run_id=run_id,
+            metadata=merged_metadata,
+            infer=infer,
+            memory_type=memory_type,
+            prompt=prompt,
+            llm=llm,
+        )
+
+    patched_add._mem0_dify_expiration_patch = True  # type: ignore[attr-defined]
+    AsyncMemory.add = patched_add
+    logger.info(
+        "Patched local AsyncMemory.add to support expiration_date via plugin compatibility layer",
+    )
+
+
+def _patch_sync_update_expiration() -> None:
+    """Preserve expiration_date when local Memory.update rewrites payload metadata."""
+    original_update_memory = Memory._update_memory
+    if getattr(original_update_memory, "_mem0_dify_expiration_patch", False):
+        return
+
+    def patched_update_memory(self, memory_id, data, existing_embeddings, metadata=None):
+        merged_metadata = _copy_dict(metadata)
+        if EXPIRATION_DATE_KEY not in merged_metadata:
+            with contextlib.suppress(Exception):
+                existing_memory = self.vector_store.get(vector_id=memory_id)
+                if existing_memory and getattr(existing_memory, "payload", None):
+                    expiration_date = existing_memory.payload.get(EXPIRATION_DATE_KEY)
+                    if expiration_date is not None:
+                        merged_metadata[EXPIRATION_DATE_KEY] = expiration_date
+        return original_update_memory(
+            self,
+            memory_id,
+            data,
+            existing_embeddings,
+            metadata=merged_metadata or None,
+        )
+
+    patched_update_memory._mem0_dify_expiration_patch = True  # type: ignore[attr-defined]
+    Memory._update_memory = patched_update_memory
+
+
+def _patch_async_update_expiration() -> None:
+    """Preserve expiration_date when local AsyncMemory.update rewrites payload metadata."""
+    original_update_memory = AsyncMemory._update_memory
+    if getattr(original_update_memory, "_mem0_dify_expiration_patch", False):
+        return
+
+    async def patched_update_memory(self, memory_id, data, existing_embeddings, metadata=None):
+        merged_metadata = _copy_dict(metadata)
+        if EXPIRATION_DATE_KEY not in merged_metadata:
+            with contextlib.suppress(Exception):
+                existing_memory = await asyncio.to_thread(self.vector_store.get, vector_id=memory_id)
+                if existing_memory and getattr(existing_memory, "payload", None):
+                    expiration_date = existing_memory.payload.get(EXPIRATION_DATE_KEY)
+                    if expiration_date is not None:
+                        merged_metadata[EXPIRATION_DATE_KEY] = expiration_date
+        return await original_update_memory(
+            self,
+            memory_id,
+            data,
+            existing_embeddings,
+            metadata=merged_metadata or None,
+        )
+
+    patched_update_memory._mem0_dify_expiration_patch = True  # type: ignore[attr-defined]
+    AsyncMemory._update_memory = patched_update_memory
+
+
+def _patch_sync_read_expiration() -> None:
+    """Patch sync read methods to promote and filter expiration_date."""
+    for method_name in ("get", "get_all", "search"):
+        original_method = getattr(Memory, method_name)
+        if getattr(original_method, "_mem0_dify_expiration_patch", False):
+            continue
+
+        def _make_patched(method):
+            def patched(*args, **kwargs):
+                return _filter_memory_results(method(*args, **kwargs))
+
+            patched._mem0_dify_expiration_patch = True  # type: ignore[attr-defined]
+            return patched
+
+        setattr(Memory, method_name, _make_patched(original_method))
+
+
+def _patch_async_read_expiration() -> None:
+    """Patch async read methods to promote and filter expiration_date."""
+    for method_name in ("get", "get_all", "search"):
+        original_method = getattr(AsyncMemory, method_name)
+        if getattr(original_method, "_mem0_dify_expiration_patch", False):
+            continue
+
+        def _make_patched(method):
+            async def patched(*args, **kwargs):
+                return _filter_memory_results(await method(*args, **kwargs))
+
+            patched._mem0_dify_expiration_patch = True  # type: ignore[attr-defined]
+            return patched
+
+        setattr(AsyncMemory, method_name, _make_patched(original_method))
+
+
+def _patch_local_mem0_expiration() -> None:
+    """Enable plugin-level expiration_date support for local Mem0 classes."""
+    _patch_sync_add_expiration()
+    _patch_async_add_expiration()
+    _patch_sync_update_expiration()
+    _patch_async_update_expiration()
+    _patch_sync_read_expiration()
+    _patch_async_read_expiration()
+
+
+_patch_local_mem0_expiration()
 _SYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(Memory.add)
 _ASYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(AsyncMemory.add)
 

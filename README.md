@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.3
+# Mem0 Dify Plugin v0.2.4
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,12 +29,12 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.2.3)
+### What's New (v0.2.4)
 - **Dify Debug Flags Honored**: `DEBUG=True` or `FLASK_DEBUG=True` now forces plugin logs to `DEBUG`, even when `LOG_LEVEL` is set differently.
 - **More Explicit Add-Memory Errors**: Memory-addition failures now log the exception type, message, and execution context to make root-cause analysis practical.
 - **Async Failure Visibility**: Background async add failures are now logged when the future completes instead of silently disappearing behind an accepted request.
-- **Expiration Compatibility Guard**: When the installed local Mem0 SDK does not support `expiration_date` on `Memory.add()`, the plugin now logs a warning and stores the memory without expiration instead of failing the whole add.
-- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.3`.
+- **Local Expiration Compatibility Layer**: The plugin now patches local `Memory` / `AsyncMemory` usage so `expiration_date` is accepted, persisted, preserved on update, and filtered on reads even when the installed local Mem0 SDK does not expose it natively.
+- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.4`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -260,10 +260,11 @@ If `LOG_LEVEL` is not set or contains an unsupported value, the plugin falls bac
 
 ### Expiration Compatibility
 
-The Mem0 documentation shows `expiration_date` support for some clients, but local `Memory` / `AsyncMemory` support depends on the installed SDK version.
+The Mem0 documentation shows `expiration_date` support on `client.add(...)`. This plugin now applies the same capability in local mode, including SDK versions where local `Memory` / `AsyncMemory` do not expose the parameter natively.
 
-- If the installed local SDK supports `expiration_date`, the plugin forwards it normally.
-- If the installed local SDK does not support it, the plugin logs a warning and stores the memory without expiration instead of failing the request.
+- `expiration_date` remains a first-class plugin parameter. It is not exposed as user metadata.
+- When the installed local SDK supports `expiration_date`, the plugin forwards it directly.
+- When the installed local SDK does not support it, the plugin applies a runtime compatibility layer so expiration is still persisted and expired memories are filtered out on `get`, `get_all`, and `search`.
 
 ### LLM Configuration (`local_llm_json`)
 
@@ -428,6 +429,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.2.4 | 2026-03-19 | Add local `expiration_date` compatibility layer, preserve expiration on update, filter expired reads, align release artifacts |
 | v0.2.3 | 2026-03-19 | Guard unsupported `expiration_date` in local Mem0 SDK, preserve add without expiration, align release artifacts |
 | v0.2.2 | 2026-03-19 | Honor `DEBUG`/`FLASK_DEBUG`, improve add-memory failure diagnostics, align release artifacts |
 | v0.2.1 | 2026-03-19 | Global `LOG_LEVEL` support with `DEBUG` fallback; release metadata and packaging aligned |

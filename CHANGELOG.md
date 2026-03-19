@@ -1,13 +1,26 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.4 (2026-03-19)
+
+### ⏳ Local Expiration Support
+
+- Added a runtime compatibility layer so local `Memory` / `AsyncMemory` accepts `expiration_date` even when the installed Mem0 SDK does not expose it natively.
+- `expiration_date` is persisted in the internal payload while remaining a first-class plugin parameter.
+- Existing expiration values are preserved during memory updates.
+- Expired memories are filtered out on `get`, `get_all`, and `search`.
+- Updated release metadata and packaging artifacts to version `0.2.4`.
+
+---
+
 ## Version 0.2.3 (2026-03-19)
 
-### ⏳ Expiration Compatibility Guard
+### ⏳ Local Expiration Compatibility
 
-- The plugin now detects whether the installed local `Memory.add()` / `AsyncMemory.add()` implementation actually supports `expiration_date`.
-- When expiration is supported, the plugin forwards it as before.
-- When expiration is not supported by the installed local Mem0 SDK, the plugin logs a warning and stores the memory without expiration instead of failing the add request.
-- This fixes runtime errors such as `TypeError: Memory.add() got an unexpected keyword argument 'expiration_date'`.
+- The plugin now applies a runtime compatibility layer for local `Memory` / `AsyncMemory` when the installed SDK does not expose `expiration_date`.
+- `expiration_date` stays a first-class plugin parameter and is persisted in the internal Mem0 payload without being exposed as user metadata.
+- Existing expiration values are preserved during memory updates.
+- Expired memories are filtered out on `get`, `get_all`, and `search`.
+- This fixes runtime errors such as `TypeError: Memory.add() got an unexpected keyword argument 'expiration_date'` while keeping expiration behavior active in local mode.
 
 ---
 

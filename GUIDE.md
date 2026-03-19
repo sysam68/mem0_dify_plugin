@@ -19,6 +19,13 @@ The plugin log level follows Dify container debug flags and log-level settings.
 - Otherwise, supported `LOG_LEVEL` values are `DEBUG`, `INFO`, `WARNING`, `ERROR`
 - Fallback: `DEBUG` when no valid log setting is provided
 
+### Expiration Compatibility
+
+The plugin supports `expiration_date` in local mode even when the installed local Mem0 SDK does not expose the parameter natively.
+
+- If local `Memory.add()` / `AsyncMemory.add()` supports `expiration_date`, the plugin forwards it directly.
+- Otherwise, the plugin patches the local Mem0 classes at runtime so expiration is persisted and expired memories are filtered out on reads.
+
 ### Step 1: Choose Operation Mode
 
 First, select the operation mode in plugin credentials:

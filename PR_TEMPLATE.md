@@ -29,7 +29,7 @@ Please provide the following metadata of your plugin to make it easier for the r
 
 <!-- Please briefly describe the purpose of the new plugin or the updates made to the existing plugin -->
 
-This submission updates `mem0ai-local` to **v0.2.3**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
+This submission updates `mem0ai-local` to **v0.2.4**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
 
 ### Key Features:
 
@@ -60,12 +60,12 @@ This submission updates `mem0ai-local` to **v0.2.3**. The plugin integrates [Mem
   - Unified logging configuration for better debugging
   - Global `LOG_LEVEL` support with fallback to `DEBUG`
 
-### v0.2.3 Highlights:
+### v0.2.4 Highlights:
 
-- Log level is now driven by the container-wide `LOG_LEVEL` environment variable (`DEBUG`, `INFO`, `WARNING`, `ERROR`)
-- Safe fallback to `DEBUG` when `LOG_LEVEL` is missing or invalid
-- Local Mem0 SDK expiration compatibility guard prevents add-memory failures when `expiration_date` is unsupported
-- Release metadata, packaging, install docs, and submission files aligned on version `0.2.3`
+- Log level is now driven by the Dify container debug flags and `LOG_LEVEL` environment variable
+- `expiration_date` now works in local mode even when the installed local Mem0 SDK does not expose it natively
+- Expiration values are preserved on update and expired memories are filtered from reads
+- Release metadata, packaging, install docs, and submission files aligned on version `0.2.4`
 
 ### Configuration:
 
