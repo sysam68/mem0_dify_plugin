@@ -29,7 +29,7 @@ Please provide the following metadata of your plugin to make it easier for the r
 
 <!-- Please briefly describe the purpose of the new plugin or the updates made to the existing plugin -->
 
-This submission updates `mem0ai-local` to **v0.2.6**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
+This submission updates `mem0ai-local` to **v0.2.7**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
 
 ### Key Features:
 
@@ -60,12 +60,12 @@ This submission updates `mem0ai-local` to **v0.2.6**. The plugin integrates [Mem
   - Unified logging configuration for better debugging
   - Global `LOG_LEVEL` support with fallback to `DEBUG`
 
-### v0.2.6 Highlights:
+### v0.2.7 Highlights:
 
-- Mem0 message parsing and graph-add handling are patched defensively to avoid opaque `string indices must be integers` crashes
-- Add-failure logs now include a formatted traceback text in addition to payload-shape diagnostics
-- Add-memory payload normalization and metadata hardening from `v0.2.5` are preserved
-- Release metadata, packaging, install docs, and submission files aligned on version `0.2.6`
+- MemoryGraph graph-extraction methods now tolerate plain JSON/string responses in addition to structured `tool_calls`
+- This fixes the exact `memgraph_memory.py` add-path crash isolated by the traceback from `v0.2.6`
+- Defensive traceback and payload diagnostics from previous versions are preserved
+- Release metadata, packaging, install docs, and submission files aligned on version `0.2.7`
 
 ### Configuration:
 

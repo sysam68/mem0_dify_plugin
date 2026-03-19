@@ -1,5 +1,15 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.7 (2026-03-19)
+
+### 🔗 MemoryGraph Response Compatibility
+
+- Patched local `MemoryGraph` graph-extraction methods to accept LLM responses returned as plain JSON text in addition to structured `tool_calls`.
+- This fixes the Memgraph add-path failure isolated in `memgraph_memory.py`, where code assumed `generate_response()` always returned a dict.
+- Updated release metadata and packaging artifacts to version `0.2.7`.
+
+---
+
 ## Version 0.2.6 (2026-03-19)
 
 ### 🔎 Deeper Add-Memory Diagnostics

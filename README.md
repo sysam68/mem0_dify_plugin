@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.6
+# Mem0 Dify Plugin v0.2.7
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,14 +29,14 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.2.6)
+### What's New (v0.2.7)
 - **Dify Debug Flags Honored**: `DEBUG=True` or `FLASK_DEBUG=True` now forces plugin logs to `DEBUG`, even when `LOG_LEVEL` is set differently.
 - **More Explicit Add-Memory Errors**: Memory-addition failures now log the exception type, message, and execution context to make root-cause analysis practical.
 - **Async Failure Visibility**: Background async add failures are now logged when the future completes instead of silently disappearing behind an accepted request.
 - **Local Expiration Compatibility Layer**: The plugin now patches local `Memory` / `AsyncMemory` usage so `expiration_date` is accepted, persisted, preserved on update, and filtered on reads even when the installed local Mem0 SDK does not expose it natively.
-- **Mem0 Message-Path Hardening**: The plugin now patches Mem0 message parsing and graph-add handling so malformed message items no longer crash the add path with opaque `string indices must be integers` errors.
-- **Traceback Visibility**: Add-failure logs now emit a formatted traceback text because the plugin container was not rendering `exc_info` details reliably.
-- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.6`.
+- **Graph Tool-Response Compatibility**: The plugin now patches local `MemoryGraph` to accept graph-extraction responses returned as plain JSON text, not only as `tool_calls` dicts.
+- **Memgraph Add Fix**: This addresses failures in `memgraph_memory.py` where code assumed `generate_response()` always returned a dict and instead received a string.
+- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.7`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -431,6 +431,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.2.7 | 2026-03-19 | Patch MemoryGraph tool-response parsing for string/JSON outputs, fix Memgraph add path assumptions, align release artifacts |
 | v0.2.6 | 2026-03-19 | Patch Mem0 message parsing/add-to-graph defensively, emit formatted traceback logs, align release artifacts |
 | v0.2.5 | 2026-03-19 | Harden add payload normalization, reject invalid metadata shapes, log message payload shapes, align release artifacts |
 | v0.2.4 | 2026-03-19 | Add local `expiration_date` compatibility layer, preserve expiration on update, filter expired reads, align release artifacts |

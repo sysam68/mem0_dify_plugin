@@ -13,7 +13,9 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 import mem0.memory.main as mem0_main
+import mem0.memory.memgraph_memory as memgraph_module
 from mem0 import AsyncMemory, Memory
+from mem0.memory.utils import extract_json, remove_code_blocks
 
 from .config_builder import build_local_mem0_config
 from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT, MAX_CONCURRENT_MEMORY_OPERATIONS
@@ -356,6 +358,81 @@ def _safe_mem0_messages_to_text(messages: Any) -> str:
         if role in {"system", "user", "assistant"}:
             parts.append(f"{role}: {content}")
     return "\n".join(parts) + ("\n" if parts else "")
+
+
+def _load_json_text(value: str) -> Any:
+    """Best-effort JSON decode for LLM string responses."""
+    normalized = remove_code_blocks(value)
+    try:
+        return json.loads(normalized)
+    except Exception:
+        with contextlib.suppress(Exception):
+            return json.loads(extract_json(normalized))
+    return value
+
+
+def _normalize_graph_llm_response(response: Any) -> Any:
+    """Normalize graph-LLM responses that may arrive as text instead of tool-call dicts."""
+    if isinstance(response, str):
+        parsed = _load_json_text(response)
+        if parsed is not response:
+            response = parsed
+
+    if isinstance(response, dict):
+        response = _normalize_tool_calls_response(response)
+        if "tool_calls" in response:
+            return response
+        if "name" in response and "arguments" in response:
+            return {"tool_calls": [response]}
+
+    return response
+
+
+def _as_entity_list(value: Any, required_keys: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Normalize a single dict or list of dicts to an entity list."""
+    if isinstance(value, dict):
+        items = [value]
+    elif isinstance(value, list):
+        items = value
+    else:
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if all(key in item for key in required_keys):
+            normalized.append(dict(item))
+    return normalized
+
+
+def _extract_graph_entities_payload(response: Any, *, expected_tool_names: set[str], required_keys: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Extract graph entity payloads from tool-call dicts or raw JSON text."""
+    normalized = _normalize_graph_llm_response(response)
+
+    if isinstance(normalized, dict) and isinstance(normalized.get("tool_calls"), list):
+        extracted: list[dict[str, Any]] = []
+        for tool_call in normalized["tool_calls"]:
+            if not isinstance(tool_call, dict):
+                continue
+            if expected_tool_names and tool_call.get("name") not in expected_tool_names:
+                continue
+            arguments = tool_call.get("arguments")
+            if isinstance(arguments, dict) and "entities" in arguments:
+                extracted.extend(_as_entity_list(arguments.get("entities"), required_keys))
+            else:
+                extracted.extend(_as_entity_list(arguments, required_keys))
+        return extracted
+
+    if isinstance(normalized, dict):
+        if "entities" in normalized:
+            return _as_entity_list(normalized.get("entities"), required_keys)
+        return _as_entity_list(normalized, required_keys)
+
+    if isinstance(normalized, list):
+        return _as_entity_list(normalized, required_keys)
+
+    return []
 
 
 def _coerce_expiration_date(expiration_date: Any) -> str | None:
@@ -724,8 +801,124 @@ def _patch_mem0_message_handling() -> None:
         AsyncMemory._add_to_graph = patched_async_add_to_graph
 
 
+def _patch_memgraph_tool_response_handling() -> None:
+    """Make MemoryGraph tolerate string/JSON graph extraction responses."""
+    memory_graph_cls = getattr(memgraph_module, "MemoryGraph", None)
+    if memory_graph_cls is None:
+        return
+
+    original_retrieve_nodes = getattr(memory_graph_cls, "_retrieve_nodes_from_data", None)
+    if callable(original_retrieve_nodes) and not getattr(original_retrieve_nodes, "_mem0_dify_safe_patch", False):
+        def patched_retrieve_nodes(self, data, filters):
+            tools = [memgraph_module.EXTRACT_ENTITIES_TOOL]
+            if self.llm_provider in ["azure_openai_structured", "openai_structured"]:
+                tools = [memgraph_module.EXTRACT_ENTITIES_STRUCT_TOOL]
+            response = self.llm.generate_response(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": f"You are a smart assistant who understands entities and their types in a given text. If user message contains self reference such as 'I', 'me', 'my' etc. then use {filters['user_id']} as the source entity. Extract all the entities from the text. ***DO NOT*** answer the question itself if the given text is a question.",
+                    },
+                    {"role": "user", "content": data},
+                ],
+                tools=tools,
+            )
+            entities = _extract_graph_entities_payload(
+                response,
+                expected_tool_names={"extract_entities"},
+                required_keys=("entity", "entity_type"),
+            )
+            entity_type_map = {
+                item["entity"]: item["entity_type"]
+                for item in entities
+                if item.get("entity") and item.get("entity_type")
+            }
+            entity_type_map = {
+                key.lower().replace(" ", "_"): value.lower().replace(" ", "_")
+                for key, value in entity_type_map.items()
+            }
+            logger.debug("Graph entity extraction normalized result: %s", entity_type_map)
+            return entity_type_map
+
+        patched_retrieve_nodes._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+        memory_graph_cls._retrieve_nodes_from_data = patched_retrieve_nodes
+
+    original_establish = getattr(memory_graph_cls, "_establish_nodes_relations_from_data", None)
+    if callable(original_establish) and not getattr(original_establish, "_mem0_dify_safe_patch", False):
+        def patched_establish(self, data, filters, entity_type_map):
+            if self.config.graph_store.custom_prompt:
+                messages = [
+                    {
+                        "role": "system",
+                        "content": memgraph_module.EXTRACT_RELATIONS_PROMPT.replace("USER_ID", filters["user_id"]).replace(
+                            "CUSTOM_PROMPT", f"4. {self.config.graph_store.custom_prompt}"
+                        ),
+                    },
+                    {"role": "user", "content": data},
+                ]
+            else:
+                messages = [
+                    {
+                        "role": "system",
+                        "content": memgraph_module.EXTRACT_RELATIONS_PROMPT.replace("USER_ID", filters["user_id"]),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"List of entities: {list(entity_type_map.keys())}. \n\nText: {data}",
+                    },
+                ]
+
+            tools = [memgraph_module.RELATIONS_TOOL]
+            expected_names = {"establish_relationships"}
+            if self.llm_provider in ["azure_openai_structured", "openai_structured"]:
+                tools = [memgraph_module.RELATIONS_STRUCT_TOOL]
+                expected_names = {"establish_relations", "establish_relationships"}
+
+            response = self.llm.generate_response(messages=messages, tools=tools)
+            entities = _extract_graph_entities_payload(
+                response,
+                expected_tool_names=expected_names,
+                required_keys=("source", "relationship", "destination"),
+            )
+            entities = self._remove_spaces_from_entities(entities)
+            logger.debug("Graph relation extraction normalized result: %s", entities)
+            return entities
+
+        patched_establish._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+        memory_graph_cls._establish_nodes_relations_from_data = patched_establish
+
+    original_delete = getattr(memory_graph_cls, "_get_delete_entities_from_search_output", None)
+    if callable(original_delete) and not getattr(original_delete, "_mem0_dify_safe_patch", False):
+        def patched_delete_entities(self, search_output, data, filters):
+            search_output_string = memgraph_module.format_entities(search_output)
+            system_prompt, user_prompt = memgraph_module.get_delete_messages(search_output_string, data, filters["user_id"])
+            tools = [memgraph_module.DELETE_MEMORY_TOOL_GRAPH]
+            if self.llm_provider in ["azure_openai_structured", "openai_structured"]:
+                tools = [memgraph_module.DELETE_MEMORY_STRUCT_TOOL_GRAPH]
+
+            response = self.llm.generate_response(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                tools=tools,
+            )
+            to_be_deleted = _extract_graph_entities_payload(
+                response,
+                expected_tool_names={"delete_graph_memory"},
+                required_keys=("source", "relationship", "destination"),
+            )
+            to_be_deleted = self._remove_spaces_from_entities(to_be_deleted)
+            logger.debug("Graph delete extraction normalized result: %s", to_be_deleted)
+            return to_be_deleted
+
+        patched_delete_entities._mem0_dify_safe_patch = True  # type: ignore[attr-defined]
+        memory_graph_cls._get_delete_entities_from_search_output = patched_delete_entities
+
+
 _patch_local_mem0_expiration()
 _patch_mem0_message_handling()
+_patch_memgraph_tool_response_handling()
 _SYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(Memory.add)
 _ASYNC_ADD_SUPPORTS_EXPIRATION = _supports_expiration_argument(AsyncMemory.add)
 
