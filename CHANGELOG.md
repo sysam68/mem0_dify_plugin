@@ -4,9 +4,11 @@
 
 ### 🪵 Global Log Level & Release Alignment
 
-- The plugin now resolves its log level from the container-wide `LOG_LEVEL` environment variable.
+- The plugin now respects Dify debug flags: `DEBUG=True` or `FLASK_DEBUG=True` forces plugin logging to `DEBUG`.
+- Outside debug mode, the plugin resolves its level from `LOG_LEVEL`.
 - Supported values are `DEBUG`, `INFO`, `WARNING`, and `ERROR`.
-- When `LOG_LEVEL` is missing or invalid, the plugin falls back to `DEBUG`.
+- When no valid log setting is provided, the plugin falls back to `DEBUG`.
+- Memory-addition failures now log explicit exception causes and execution context to speed up diagnosis.
 - Updated release artifacts and documentation to consistently reference version `0.2.1`.
 - Aligned submission metadata with the current manifest and the verified Git origin repository.
 

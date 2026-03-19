@@ -30,9 +30,10 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
 ### What's New (v0.2.1)
-- **Global Log Level Support**: The plugin now follows the container-wide `LOG_LEVEL` environment variable with supported values `DEBUG`, `INFO`, `WARNING`, and `ERROR`.
-- **Safe Fallback**: If `LOG_LEVEL` is missing or invalid, the plugin falls back to `DEBUG` so diagnostics stay available by default.
-- **Release Artifact Alignment**: Manifest, packaging script, install guide, and submission metadata are aligned on version `0.2.1`.
+- **Dify Debug Awareness**: `DEBUG=True` or `FLASK_DEBUG=True` now forces plugin logging to `DEBUG`, matching the surrounding Dify container behavior.
+- **Global Log Level Support**: Outside explicit Dify debug mode, the plugin follows `LOG_LEVEL` with supported values `DEBUG`, `INFO`, `WARNING`, and `ERROR`.
+- **Safe Fallback**: If no valid log configuration is provided, the plugin falls back to `DEBUG` so diagnostics stay available by default.
+- **Explicit Failure Causes**: Memory-addition failures now log the exception type, message, and execution context without dumping user message content.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -76,10 +77,11 @@ After installation, configure the plugin in the following order:
 
 #### Global Logging Level
 
-The plugin follows the container-wide `LOG_LEVEL` environment variable used by Dify components.
+The plugin follows Dify container debug flags and log-level settings.
 
-- Supported values: `DEBUG`, `INFO`, `WARNING`, `ERROR`
-- Fallback behavior: if `LOG_LEVEL` is missing or invalid, the plugin uses `DEBUG`
+- `DEBUG=True` or `FLASK_DEBUG=True` forces plugin logging to `DEBUG`
+- Otherwise, supported `LOG_LEVEL` values are `DEBUG`, `INFO`, `WARNING`, `ERROR`
+- Fallback behavior: if no valid setting is provided, the plugin uses `DEBUG`
 - Scope: this affects plugin logger output routed through Dify's `plugin_logger_handler`
 
 #### Step 1: Choose Operation Mode
@@ -250,6 +252,8 @@ Set `LOG_LEVEL` at the Dify container level:
 - `INFO` - Standard operational visibility
 - `WARNING` - Warnings and errors only
 - `ERROR` - Errors only
+
+If `DEBUG=True` or `FLASK_DEBUG=True`, the plugin forces `DEBUG` logging regardless of `LOG_LEVEL`.
 
 If `LOG_LEVEL` is not set or contains an unsupported value, the plugin falls back to `DEBUG`.
 

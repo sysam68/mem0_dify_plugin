@@ -13,10 +13,11 @@ Follow the official Dify plugin installation guide:
 
 ### Global Logging Level
 
-The plugin log level follows the container-wide `LOG_LEVEL` environment variable used by Dify components.
+The plugin log level follows Dify container debug flags and log-level settings.
 
-- Supported values: `DEBUG`, `INFO`, `WARNING`, `ERROR`
-- Fallback: `DEBUG` when `LOG_LEVEL` is not set or contains an invalid value
+- `DEBUG=True` or `FLASK_DEBUG=True` forces plugin logging to `DEBUG`
+- Otherwise, supported `LOG_LEVEL` values are `DEBUG`, `INFO`, `WARNING`, `ERROR`
+- Fallback: `DEBUG` when no valid log setting is provided
 
 ### Step 1: Choose Operation Mode
 

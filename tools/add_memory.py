@@ -10,7 +10,7 @@ from dify_plugin import Tool
 from dify_plugin.entities.tool import ToolInvokeMessage
 from utils.config_builder import is_async_mode
 from utils.constants import ADD_ACCEPT_RESULT, ADD_SKIP_RESULT
-from utils.logger import get_logger
+from utils.logger import format_exception, get_logger
 from utils.mem0_client import (
     get_async_local_client,
     get_local_client,
@@ -47,6 +47,11 @@ def _parse_expiration(expiration_text: Any) -> str | None:
         return None
 
     return (datetime.utcnow() + delta).strftime("%Y-%m-%d")
+
+
+def _message_count(messages: Any) -> int:
+    """Return the number of messages prepared for the add request."""
+    return len(messages) if isinstance(messages, (list, tuple)) else 0
 
 
 class AddMemoryTool(Tool):
@@ -108,12 +113,18 @@ class AddMemoryTool(Tool):
         if expiration_date:
             payload["expiration_date"] = expiration_date
             if global_expiration_text:
-                logger.info("Applied global expiration_time override")
+                logger.info(
+                    "Applied global expiration_time override (user_id: %s, raw: %s, resolved_date: %s)",
+                    user_id,
+                    global_expiration_text,
+                    expiration_date,
+                )
         elif expiration_text:
             logger.warning(
                 "Invalid expiration_date format, expected <int><unit> with unit in {s,min,h,d,m,Y}"
             )
 
+        mode_str = "unknown"
         try:
             # Skip when no messages prepared or only blank content
             if (
@@ -138,11 +149,46 @@ class AddMemoryTool(Tool):
                 client = get_async_local_client(self.runtime.credentials)
                 # Submit add to background event loop without awaiting (non-blocking)
                 loop = client.ensure_bg_loop()
-                asyncio.run_coroutine_threadsafe(client.add(payload), loop)
+                future = asyncio.run_coroutine_threadsafe(client.add(payload), loop)
+
+                def _log_async_result(done_future: object) -> None:
+                    try:
+                        async_result = done_future.result()
+                    except Exception as async_error:
+                        logger.error(
+                            "Asynchronous memory addition failed (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, metadata_present: %s, expiration_date: %s): %s",
+                            user_id,
+                            agent_id or "-",
+                            run_id or "-",
+                            _message_count(messages),
+                            metadata is not None,
+                            expiration_date or "-",
+                            format_exception(async_error),
+                        )
+                        logger.debug(
+                            "Stack trace for asynchronous memory addition failure (user_id: %s)",
+                            user_id,
+                            exc_info=(
+                                type(async_error),
+                                async_error,
+                                async_error.__traceback__,
+                            ),
+                        )
+                    else:
+                        logger.debug(
+                            "Asynchronous memory addition completed (user_id: %s, result_type: %s)",
+                            user_id,
+                            type(async_result).__name__,
+                        )
+
+                future.add_done_callback(_log_async_result)
                 logger.info(
-                    "Memory addition submitted to background loop (%s, user_id: %s)",
+                    "Memory addition submitted to background loop (%s, user_id: %s, agent_id: %s, run_id: %s, message_count: %d)",
                     mode_str,
                     user_id,
+                    agent_id or "-",
+                    run_id or "-",
+                    _message_count(messages),
                 )
 
                 yield self.create_json_message({
@@ -169,8 +215,23 @@ class AddMemoryTool(Tool):
 
         except Exception as e:
             # Catch all exceptions to ensure workflow continues
-            logger.exception("Error adding memory for user_id: %s", user_id)
-            error_message = f"Error: {e!s}"
+            logger.error(
+                "Memory addition failed before completion (mode: %s, user_id: %s, agent_id: %s, run_id: %s, message_count: %d, metadata_present: %s, expiration_date: %s): %s",
+                mode_str,
+                user_id,
+                agent_id or "-",
+                run_id or "-",
+                _message_count(messages),
+                metadata is not None,
+                expiration_date or "-",
+                format_exception(e),
+            )
+            logger.debug(
+                "Stack trace for memory addition failure (user_id: %s)",
+                user_id,
+                exc_info=(type(e), e, e.__traceback__),
+            )
+            error_message = format_exception(e)
             yield self.create_json_message(
                 {"status": "ERROR", "messages": error_message, "results": []})
             yield self.create_text_message(f"Failed to add memory: {error_message}")

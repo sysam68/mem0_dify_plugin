@@ -13,7 +13,7 @@ from mem0 import AsyncMemory, Memory
 
 from .config_builder import build_local_mem0_config
 from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT, MAX_CONCURRENT_MEMORY_OPERATIONS
-from .logger import get_logger
+from .logger import format_exception, get_logger
 
 logger = get_logger(__name__)
 
@@ -212,6 +212,11 @@ def _normalize_search_results(results: object) -> list[dict[str, Any]]:
     return normalized
 
 
+def _count_payload_messages(messages: Any) -> int:
+    """Return the number of messages present in an add payload."""
+    return len(messages) if isinstance(messages, (list, tuple)) else 0
+
+
 class LocalClient:
     """Local Mem0 client using configured providers."""
 
@@ -342,8 +347,21 @@ class LocalClient:
         messages = payload.get("messages")
         try:
             result = self.memory.add(messages, **kwargs)
-        except Exception:
-            logger.exception("Error during memory addition")
+        except Exception as error:
+            logger.error(
+                "Memory addition failed in sync Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, metadata_present: %s, expiration_date: %s): %s",
+                payload.get("user_id") or "-",
+                payload.get("agent_id") or "-",
+                payload.get("run_id") or "-",
+                _count_payload_messages(messages),
+                metadata is not None,
+                expiration_date or "-",
+                format_exception(error),
+            )
+            logger.debug(
+                "Stack trace for sync Mem0 memory addition failure",
+                exc_info=(type(error), error, error.__traceback__),
+            )
             raise
         else:
             return result
@@ -814,8 +832,21 @@ class AsyncLocalClient:
             async with self._semaphore:
                 # Await to ensure persistence before returning
                 result = await self.memory.add(messages, **kwargs)
-        except Exception:
-            logger.exception("Error during async memory addition")
+        except Exception as error:
+            logger.error(
+                "Memory addition failed in async Mem0 client (user_id: %s, agent_id: %s, run_id: %s, message_count: %d, metadata_present: %s, expiration_date: %s): %s",
+                payload.get("user_id") or "-",
+                payload.get("agent_id") or "-",
+                payload.get("run_id") or "-",
+                _count_payload_messages(messages),
+                metadata is not None,
+                expiration_date or "-",
+                format_exception(error),
+            )
+            logger.debug(
+                "Stack trace for async Mem0 memory addition failure",
+                exc_info=(type(error), error, error.__traceback__),
+            )
             raise
         else:
             return result
