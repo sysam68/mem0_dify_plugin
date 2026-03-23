@@ -1,5 +1,15 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.8 (2026-03-23)
+
+### 🧩 Graph Prompt Override & Credential Cleanup
+
+- Added `graph_store_custom_prompt` as a dedicated Dify provider credential and mapped it to Mem0 `graph_store.custom_prompt`.
+- Removed the deprecated `memory_name` provider credential and its fallback logic; `collection_name` remains the single vector-store override field.
+- Updated release metadata and packaging artifacts to version `0.2.8`.
+
+---
+
 ## Version 0.2.7 (2026-03-19)
 
 ### 🔗 MemoryGraph Response Compatibility

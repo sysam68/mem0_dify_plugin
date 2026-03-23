@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.7
+# Mem0 Dify Plugin v0.2.8
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,14 +29,10 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.2.7)
-- **Dify Debug Flags Honored**: `DEBUG=True` or `FLASK_DEBUG=True` now forces plugin logs to `DEBUG`, even when `LOG_LEVEL` is set differently.
-- **More Explicit Add-Memory Errors**: Memory-addition failures now log the exception type, message, and execution context to make root-cause analysis practical.
-- **Async Failure Visibility**: Background async add failures are now logged when the future completes instead of silently disappearing behind an accepted request.
-- **Local Expiration Compatibility Layer**: The plugin now patches local `Memory` / `AsyncMemory` usage so `expiration_date` is accepted, persisted, preserved on update, and filtered on reads even when the installed local Mem0 SDK does not expose it natively.
-- **Graph Tool-Response Compatibility**: The plugin now patches local `MemoryGraph` to accept graph-extraction responses returned as plain JSON text, not only as `tool_calls` dicts.
-- **Memgraph Add Fix**: This addresses failures in `memgraph_memory.py` where code assumed `generate_response()` always returned a dict and instead received a string.
-- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.7`.
+### What's New (v0.2.8)
+- **Graph Custom Prompt Override**: Added a dedicated `graph_store_custom_prompt` credential that maps to Mem0 `graph_store.custom_prompt`.
+- **Credential Cleanup**: The deprecated `Memory name` field is now fully removed from the Dify provider form; `Collection name (override the JSON config)` remains the single override field.
+- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.8`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -115,7 +111,11 @@ Configure the following JSON blocks in plugin settings. For detailed configurati
 - `local_vector_db_json` - Vector database configuration
 
 **Optional:**
+- `collection_name` - Override the vector store collection/table name from plugin settings
+- `custom_fact_extraction_prompt` - Override Mem0 fact extraction prompt
+- `custom_update_memory_prompt` - Override Mem0 update-memory prompt
 - `local_graph_db_json` - Graph database configuration (e.g., Neo4j)
+- `graph_store_custom_prompt` - Override Mem0 `graph_store.custom_prompt`
 - `local_reranker_json` - Reranker configuration
 
 See the [Configuration Examples](#-configuration-examples) section below for basic JSON examples.
@@ -339,6 +339,14 @@ The Mem0 documentation shows `expiration_date` support on `client.add(...)`. Thi
 }
 ```
 
+Optional plugin field:
+
+```text
+graph_store_custom_prompt=Please only capture people, organisations, and project links.
+```
+
+This value is injected as top-level Mem0 `graph_store.custom_prompt` without changing the JSON payload structure of `local_graph_db_json`.
+
 ### Reranker Configuration (`local_reranker_json`) - Optional
 
 ```json
@@ -431,6 +439,7 @@ done
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v0.2.8 | 2026-03-23 | Add `graph_store_custom_prompt` passthrough to Mem0 `graph_store.custom_prompt`, remove deprecated `memory_name`, align release artifacts |
 | v0.2.7 | 2026-03-19 | Patch MemoryGraph tool-response parsing for string/JSON outputs, fix Memgraph add path assumptions, align release artifacts |
 | v0.2.6 | 2026-03-19 | Patch Mem0 message parsing/add-to-graph defensively, emit formatted traceback logs, align release artifacts |
 | v0.2.5 | 2026-03-19 | Harden add payload normalization, reject invalid metadata shapes, log message payload shapes, align release artifacts |

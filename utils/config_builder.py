@@ -305,7 +305,6 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
         )
 
         collection_name = _read_text(credentials.get("collection_name"))
-        memory_name = _read_text(credentials.get("memory_name"))  # legacy, used only if collection_name missing
         enable_graph = _read_bool(credentials.get("enable_graph"), False)
         instructions = _read_text(credentials.get("instructions"))
         custom_fact_extraction_prompt = _read_text(
@@ -313,6 +312,9 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
         )
         custom_update_memory_prompt = _read_text(
             credentials.get("custom_update_memory_prompt"),
+        )
+        graph_store_custom_prompt = _read_text(
+            credentials.get("graph_store_custom_prompt"),
         )
 
         if llm is None:
@@ -329,10 +331,6 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
         if collection_name and isinstance(vector_store.get("config"), dict):
             vector_store["config"]["collection_name"] = collection_name
             logger.debug("Explicit collection_name override applied: %s", collection_name)
-        elif memory_name and isinstance(vector_store.get("config"), dict):
-            # Legacy fallback for backward compatibility
-            vector_store["config"]["collection_name"] = memory_name
-            logger.debug("Legacy memory_name applied as collection_name: %s", memory_name)
 
         # Normalize pgvector config shape if necessary
         if (
@@ -354,6 +352,11 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
             cfg = graph_store.get("config")
             if isinstance(cfg, dict):
                 _maybe_rewrite_neo4j_url(cfg)
+        if graph_store and graph_store_custom_prompt:
+            graph_store["custom_prompt"] = graph_store_custom_prompt
+            logger.debug("Graph custom prompt override applied")
+        elif graph_store_custom_prompt:
+            logger.warning("graph_store_custom_prompt was provided but no graph_store configuration was found")
 
         config: dict[str, Any] = {
             "llm": llm,

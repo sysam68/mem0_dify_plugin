@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.7 - 安装指南
+# Mem0 Dify Plugin v0.2.8 - 安装指南
 
 ## 📦 安装步骤
 
@@ -17,7 +17,7 @@
 3. **安装插件**
    - 点击 **"Install from GitHub"** 或 **"上传插件"** 按钮
    - 如果从 GitHub 安装：输入仓库 URL
-   - 如果从包安装：选择 `mem0ai-local-0.2.7.difypkg` 文件
+   - 如果从包安装：选择 `mem0ai-local-0.2.8.difypkg` 文件
    - 等待上传和安装完成
 
 ### 2. 配置插件
@@ -52,7 +52,11 @@
 - `local_vector_db_json` - 向量数据库配置
 
 **可选项：**
+- `collection_name` - 覆盖向量库 JSON 配置中的集合/表名
+- `custom_fact_extraction_prompt` - 覆盖 Mem0 的事实提取提示词
+- `custom_update_memory_prompt` - 覆盖 Mem0 的记忆更新提示词
 - `local_graph_db_json` - 图数据库配置（如 Neo4j）
+- `graph_store_custom_prompt` - 覆盖 Mem0 的 `graph_store.custom_prompt`
 - `local_reranker_json` - 重排序器配置
 
 ---
@@ -131,6 +135,14 @@
   }
 }
 ```
+
+可选插件字段：
+
+```text
+graph_store_custom_prompt=Please only capture people, organisations, and project links.
+```
+
+该字段会作为 Mem0 顶层 `graph_store.custom_prompt` 注入，不会改变 `local_graph_db_json` 的 JSON 结构。
 
 ### Reranker 配置 (`local_reranker_json`) - 可选
 
@@ -251,7 +263,7 @@ cd <your-plugin-directory>
    - 或使用 CLI：`dify plugin uninstall mem0ai`
 
 3. **安装新版本**
-   - 按照上述步骤安装 v0.2.7
+   - 按照上述步骤安装 v0.2.8
    - 重新配置运行模式和所有 JSON 凭证
 
 4. **验证功能**

@@ -5,7 +5,7 @@
 
 set -e
 
-PLUGIN_VERSION="0.2.7"
+PLUGIN_VERSION="0.2.8"
 REPO_NAME="mem0_dify_plugin"
 DEFAULT_REMOTE_URL="https://github.com/sysam68/mem0_dify_plugin.git"
 CURRENT_REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "$DEFAULT_REMOTE_URL")

@@ -99,18 +99,6 @@ credentials_for_provider:
     help:
       en_US: Optional collection/table name for the vector store. If set, overrides the collection_name inside the Vector DB JSON config.
       zh_Hans: 可选，向量库的集合/表名称。填写后将覆盖向量数据库 JSON 配置中的 collection_name。
-  memory_name:
-    type: text-input
-    required: false
-    label:
-      en_US: Memory name (deprecated)
-      zh_Hans: 记忆名称（已弃用）
-    placeholder:
-      en_US: mem0
-      zh_Hans: mem0
-    help:
-      en_US: Legacy field kept for compatibility; ignored unless collection_name is empty.
-      zh_Hans: 兼容保留字段；仅在 collection_name 为空时使用。
   local_vector_db_json:
     type: text-input
     required: true
@@ -139,6 +127,18 @@ credentials_for_provider:
     placeholder:
       en_US: '{"provider":"neo4j","config":{...}}'
       zh_Hans: '{"provider":"neo4j","config":{...}}'
+  graph_store_custom_prompt:
+    type: text-input
+    required: false
+    label:
+      en_US: Graph Custom Prompt
+      zh_Hans: 图谱自定义提示词
+    placeholder:
+      en_US: Optional graph extraction prompt override
+      zh_Hans: 可选的图谱提取提示词覆盖
+    help:
+      en_US: If provided, sets graph_store.custom_prompt in Mem0 config.
+      zh_Hans: 如填写，将设置 Mem0 配置中的 graph_store.custom_prompt。
   local_reranker_json:
     type: text-input
     required: false
