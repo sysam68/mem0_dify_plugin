@@ -13,6 +13,7 @@ Each is expected to be a JSON object with at least {"provider": ..., "config": {
 from __future__ import annotations
 
 import ast
+import copy
 import hashlib
 import json
 import socket
@@ -273,6 +274,48 @@ def _read_bool(value: Any, default: bool) -> bool:
     return default
 
 
+def _ensure_fact_prompt_compatibility(prompt: str) -> str:
+    """Wrap a custom fact extraction prompt so Mem0 always receives `{\"facts\": [...]}` output."""
+    cleaned = prompt.strip()
+    if not cleaned:
+        return prompt
+
+    cleaned = cleaned.replace("{messages}", "").strip()
+
+    compatibility_guard = """
+You extract analytically useful memories from the conversation for downstream retrieval.
+
+You may use information from both user and assistant messages. Ignore system messages.
+
+Return only valid JSON.
+Do not return markdown.
+Do not return code fences.
+Do not return explanations.
+Do not return any keys other than "facts".
+
+Required output format:
+{"facts": ["..."]}
+
+If nothing useful is found, return exactly:
+{"facts": []}
+
+Hard requirements:
+- The top-level value must be a JSON object.
+- The object must contain a single key named "facts".
+- The value of "facts" must be a JSON array of strings.
+- Each item in "facts" must be a single standalone memory string.
+- Do not return objects inside "facts".
+- Do not return classifications as JSON fields.
+- If needed, prefix each memory string with FACT:, OPINION:, or PROJECTION:.
+""".strip()
+
+    return (
+        f"{compatibility_guard}\n\n"
+        f"Custom extraction guidance:\n{cleaned}\n\n"
+        "Conversation:\n{messages}"
+    )
+
+
 def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
     """Construct mem0 local config dict from simplified JSON credential blocks.
 
@@ -352,6 +395,9 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
             cfg = graph_store.get("config")
             if isinstance(cfg, dict):
                 _maybe_rewrite_neo4j_url(cfg)
+        if graph_store and not isinstance(graph_store.get("llm"), dict):
+            graph_store["llm"] = copy.deepcopy(llm)
+            logger.debug("Graph store LLM inherited from local_llm_json")
         if graph_store and graph_store_custom_prompt:
             graph_store["custom_prompt"] = graph_store_custom_prompt
             logger.debug("Graph custom prompt override applied")
@@ -364,7 +410,9 @@ def build_local_mem0_config(credentials: dict[str, Any]) -> dict[str, Any]:
             "vector_store": vector_store,
         }
         if custom_fact_extraction_prompt:
-            config["custom_fact_extraction_prompt"] = custom_fact_extraction_prompt
+            config["custom_fact_extraction_prompt"] = _ensure_fact_prompt_compatibility(
+                custom_fact_extraction_prompt,
+            )
         if custom_update_memory_prompt:
             config["custom_update_memory_prompt"] = custom_update_memory_prompt
         if reranker:

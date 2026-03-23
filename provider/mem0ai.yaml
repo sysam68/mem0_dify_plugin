@@ -61,11 +61,11 @@ credentials_for_provider:
       en_US: Custom Fact Extraction Prompt
       zh_Hans: 自定义事实提取提示词
     placeholder:
-      en_US: Optional fact extraction prompt override
-      zh_Hans: 可选的事实提取提示词覆盖
+      en_US: Optional analytical extraction guidance; plugin enforces {"facts":[...]} output
+      zh_Hans: 可选的分析提取指引；插件会强制输出 {"facts":[...]} 格式
     help:
-      en_US: If provided, sets custom_fact_extraction_prompt in Mem0 config.
-      zh_Hans: 如填写，将设置 Mem0 配置中的 custom_fact_extraction_prompt。
+      en_US: If provided, sets custom_fact_extraction_prompt in Mem0 config and wraps it to enforce Mem0-compatible JSON output with a top-level "facts" key.
+      zh_Hans: 如填写，将设置 Mem0 配置中的 custom_fact_extraction_prompt，并自动包裹为带顶层 "facts" 键的 Mem0 兼容 JSON 输出。
   custom_update_memory_prompt:
     type: text-input
     required: false

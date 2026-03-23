@@ -29,7 +29,7 @@ Please provide the following metadata of your plugin to make it easier for the r
 
 <!-- Please briefly describe the purpose of the new plugin or the updates made to the existing plugin -->
 
-This submission updates `mem0ai-local` to **v0.2.8**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
+This submission updates `mem0ai-local` to **v0.2.9**. The plugin integrates [Mem0 AI](https://mem0.ai)'s intelligent memory layer into Dify, providing comprehensive memory management capabilities for AI applications in **local mode**, with user-managed LLM, embedding, vector, graph, and reranker backends.
 
 ### Key Features:
 
@@ -60,11 +60,11 @@ This submission updates `mem0ai-local` to **v0.2.8**. The plugin integrates [Mem
   - Unified logging configuration for better debugging
   - Global `LOG_LEVEL` support with fallback to `DEBUG`
 
-### v0.2.8 Highlights:
+### v0.2.9 Highlights:
 
-- Added a dedicated `graph_store_custom_prompt` plugin credential that populates Mem0 `graph_store.custom_prompt`
-- Fully removed the deprecated `Memory name` provider field while keeping `Collection name (override the JSON config)`
-- Release metadata, packaging, install docs, and submission files aligned on version `0.2.8`
+- Raised the Python `ollama` client dependency floor to `>=0.6.1`
+- Existing plugin behavior and configuration surface are unchanged in this release
+- Release metadata, packaging, install docs, and submission files aligned on version `0.2.9`
 
 ### Configuration:
 

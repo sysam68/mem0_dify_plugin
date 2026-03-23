@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.8
+# Mem0 Dify Plugin v0.2.9
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,10 +29,9 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.2.8)
-- **Graph Custom Prompt Override**: Added a dedicated `graph_store_custom_prompt` credential that maps to Mem0 `graph_store.custom_prompt`.
-- **Credential Cleanup**: The deprecated `Memory name` field is now fully removed from the Dify provider form; `Collection name (override the JSON config)` remains the single override field.
-- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.8`.
+### What's New (v0.2.9)
+- **Ollama Client Upgrade**: Raised the Python `ollama` dependency floor to `>=0.6.1`.
+- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.9`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -438,6 +437,7 @@ done
 ## 📊 Version History
 
 | Version | Date | Changes |
+| v0.2.9 | 2026-03-23 | Raise Python `ollama` client dependency to `>=0.6.1`, align release artifacts |
 |---------|------|---------|
 | v0.2.8 | 2026-03-23 | Add `graph_store_custom_prompt` passthrough to Mem0 `graph_store.custom_prompt`, remove deprecated `memory_name`, align release artifacts |
 | v0.2.7 | 2026-03-19 | Patch MemoryGraph tool-response parsing for string/JSON outputs, fix Memgraph add path assumptions, align release artifacts |

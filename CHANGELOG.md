@@ -1,5 +1,14 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.9 (2026-03-23)
+
+### 📦 Ollama Client Upgrade
+
+- Raised the Python `ollama` client dependency from `>=0.1.9` to `>=0.6.1`.
+- Updated release metadata and packaging artifacts to version `0.2.9`.
+
+---
+
 ## Version 0.2.8 (2026-03-23)
 
 ### 🧩 Graph Prompt Override & Credential Cleanup

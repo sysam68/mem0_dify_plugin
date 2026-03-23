@@ -7,10 +7,21 @@ import contextlib
 import hashlib
 import inspect
 import json
+import os
 import threading
 import traceback
 from datetime import date, datetime, timezone
 from typing import Any
+
+# Disable Mem0/PostHog telemetry even when LocalClient is imported directly,
+# bypassing the plugin entrypoint that normally sets these env vars.
+os.environ.setdefault("MEM0_TELEMETRY", "False")
+os.environ.setdefault("POSTHOG_DISABLED", "1")
+os.environ.setdefault("DO_NOT_TRACK", "1")
+
+from .logger import format_exception, get_logger
+
+logger = get_logger(__name__)
 
 import mem0.memory.main as mem0_main
 import mem0.memory.memgraph_memory as memgraph_module
@@ -19,9 +30,6 @@ from mem0.memory.utils import extract_json, remove_code_blocks
 
 from .config_builder import build_local_mem0_config
 from .constants import ADD_SKIP_RESULT, CUSTOM_PROMPT, MAX_CONCURRENT_MEMORY_OPERATIONS
-from .logger import format_exception, get_logger
-
-logger = get_logger(__name__)
 
 EXPIRATION_DATE_KEY = "expiration_date"
 
