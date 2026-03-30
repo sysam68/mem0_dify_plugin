@@ -5,7 +5,7 @@ rank-bm25
 psycopg2-binary
 transformers
 torch
-dify-plugin==0.3.3
+dify-plugin==0.4.1
 python-dotenv
 ollama>=0.6.1
 langchain-memgraph

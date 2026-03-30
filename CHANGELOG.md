@@ -1,5 +1,15 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.10 (2026-03-30)
+
+### 🔌 Dify SDK Compatibility Alignment
+
+- Raised the Python `dify-plugin` SDK dependency from `0.3.3` to `0.4.1`.
+- This aligns the plugin package with deployments running `langgenius/dify-plugin-daemon:0.4.1-local`.
+- Updated release metadata and packaging artifacts to version `0.2.10`.
+
+---
+
 ## Version 0.2.9 (2026-03-23)
 
 ### 📦 Ollama Client Upgrade
