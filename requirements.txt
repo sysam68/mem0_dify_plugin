@@ -1,4 +1,4 @@
-mem0ai @ git+https://github.com/sysam68/mem0.git@main
+mem0ai==1.0.9
 pydantic
 langchain-neo4j
 rank-bm25

@@ -1,4 +1,4 @@
-# Mem0 Dify Plugin v0.2.10
+# Mem0 Dify Plugin v0.2.11
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Dify Plugin](https://img.shields.io/badge/Dify-Plugin-blue)](https://dify.ai)
@@ -29,9 +29,9 @@ A comprehensive Dify plugin that integrates [Mem0 AI](https://mem0.ai)'s intelli
 - 🌍 **Internationalized** - 4 languages (en/zh/pt/ja)
 - ⚙️ **Async Mode Switch** - `async_mode` is enabled by default; Write ops (Add/Update/Delete) are non-blocking in async mode, Read ops (Search/Get) always wait; in sync mode all operations block until completion.
 
-### What's New (v0.2.10)
-- **Dify SDK Alignment**: Raised the Python `dify-plugin` SDK dependency from `0.3.3` to `0.4.1` to match deployments running `langgenius/dify-plugin-daemon:0.4.1-local`.
-- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.10`.
+### What's New (v0.2.11)
+- **Official Mem0 Release**: Replaced the fork-tracking dependency `sysam68/mem0@main` with the official PyPI release `mem0ai==1.0.9`.
+- **Release Alignment**: Packaging, manifest, install guide, and release metadata are aligned on `0.2.11`.
 
 ### Previous Updates (v0.1.3)
 - **Unified Logging Configuration**: Implemented centralized logging using Dify's official plugin logger handler to ensure all logs are properly output to the Dify plugin container for better debugging and monitoring.
@@ -437,6 +437,7 @@ done
 ## 📊 Version History
 
 | Version | Date | Changes |
+| v0.2.11 | 2026-03-30 | Switch Mem0 dependency from fork-tracking `sysam68/mem0@main` to official `mem0ai==1.0.9`, align release artifacts |
 | v0.2.10 | 2026-03-30 | Raise Python `dify-plugin` SDK to `0.4.1` for `dify-plugin-daemon:0.4.1-local` compatibility, align release artifacts |
 | v0.2.9 | 2026-03-23 | Raise Python `ollama` client dependency to `>=0.6.1`, align release artifacts |
 |---------|------|---------|

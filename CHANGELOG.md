@@ -1,5 +1,15 @@
 # Mem0 Dify Plugin - Changelog
 
+## Version 0.2.11 (2026-03-30)
+
+### 📦 Official Mem0 Release Adoption
+
+- Replaced the fork-tracking dependency `mem0ai @ git+https://github.com/sysam68/mem0.git@main` with the official PyPI release `mem0ai==1.0.9`.
+- Verified plugin module imports against `mem0ai==1.0.9` in an isolated environment.
+- Updated release metadata and packaging artifacts to version `0.2.11`.
+
+---
+
 ## Version 0.2.10 (2026-03-30)
 
 ### 🔌 Dify SDK Compatibility Alignment
